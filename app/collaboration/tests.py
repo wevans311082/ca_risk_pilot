@@ -214,7 +214,10 @@ class CollaborationSubsystemTests(TestCase):
         notif_reject = Notification.objects.filter(recipient=self.client_user, title="Evidence Request Rejected").first()
         self.assertIsNotNone(notif_reject)
 
-        # 4. Assessor approves submission
+        # 4. Assessor approves submission after malware scanning passes
+        latest_version = req.submitted_evidence.versions.first()
+        latest_version.status = 'Clean'
+        latest_version.save()
         response = c_assessor.post(reverse('approve_reject_evidence_request', args=[req.id]), {
             'action': 'approve'
         })
@@ -232,3 +235,63 @@ class CollaborationSubsystemTests(TestCase):
         audit = AuditEvent.objects.filter(event_type='COLLABORATION', action='UPDATE').first()
         self.assertIsNotNone(audit)
         self.assertEqual(audit.payload['status'], 'Approved')
+
+    def test_evidence_request_submission_and_approval_scope_rules(self):
+        c_assessor = self.login_user(self.assessor)
+        c_client = self.login_user(self.client_user)
+
+        req = EvidenceRequest.objects.create(
+            tenant=self.tenant_a,
+            title='Scoped Evidence',
+            description='Upload scoped evidence',
+            client=self.client_a,
+            requested_by=self.assessor,
+            assessment=self.assessment_client_a,
+            status='Pending',
+        )
+        other_doc = EvidenceDocument.objects.create(
+            tenant=self.tenant_a,
+            name='Other client evidence',
+            created_by=self.other_client_user,
+            assessment=self.assessment_client_b,
+        )
+        EvidenceVersion.objects.create(
+            document=other_doc,
+            version_number=1,
+            file_name='other.pdf',
+            file='other.pdf',
+            content_type='application/pdf',
+            file_size=10,
+            status='Clean',
+        )
+
+        response = c_client.post(reverse('submit_evidence_response', args=[req.id]), {
+            'evidence_id': other_doc.id,
+            'client_response': 'Trying to attach the wrong client evidence.',
+        })
+        self.assertEqual(response.status_code, 404)
+
+        response = c_assessor.post(reverse('submit_evidence_response', args=[req.id]), {
+            'client_response': 'Assessor cannot submit on behalf of client.',
+            'file': SimpleUploadedFile('x.pdf', b'x', content_type='application/pdf'),
+        })
+        self.assertEqual(response.status_code, 302)
+        req.refresh_from_db()
+        self.assertEqual(req.status, 'Pending')
+
+        uploaded_file = SimpleUploadedFile("pending.pdf", b"pending", content_type="application/pdf")
+        with patch('evidence.tasks.scan_file_clamav.delay'):
+            c_client.post(reverse('submit_evidence_response', args=[req.id]), {
+                'client_response': 'Valid upload.',
+                'file': uploaded_file,
+            })
+        req.refresh_from_db()
+        self.assertEqual(req.status, 'Submitted')
+        self.assertEqual(req.submitted_evidence.versions.first().status, 'Pending')
+
+        response = c_assessor.post(reverse('approve_reject_evidence_request', args=[req.id]), {
+            'action': 'approve',
+        })
+        self.assertEqual(response.status_code, 302)
+        req.refresh_from_db()
+        self.assertEqual(req.status, 'Submitted')

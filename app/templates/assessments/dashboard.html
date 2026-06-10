@@ -441,8 +441,15 @@
 
                             <!-- Template Assessments -->
                             {% for tass in assigned_templates %}
+                                {% with first_section=tass.template.sections.first %}
                                 <tr>
-                                    <td class="ps-4 fw-semibold"><a href="{% url 'template_assessment_fill' tass.id %}" class="text-dark">{{ tass.name }}</a></td>
+                                    <td class="ps-4 fw-semibold">
+                                        {% if first_section %}
+                                            <a href="{% url 'template_assessment_fill' assessment_id=tass.id section_id=first_section.id %}" class="text-dark">{{ tass.name }}</a>
+                                        {% else %}
+                                            <span class="text-dark">{{ tass.name }}</span>
+                                        {% endif %}
+                                    </td>
                                     <td>{{ tass.client.name }}</td>
                                     <td><span class="badge bg-info text-dark">Dynamic Questionnaire</span></td>
                                     <td>
@@ -457,9 +464,14 @@
                                         {% endif %}
                                     </td>
                                     <td class="pe-4 text-end">
-                                        <a href="{% url 'template_assessment_fill' tass.id %}" class="btn btn-outline-rp btn-sm py-0.5 px-2.5">Fill</a>
+                                        {% if first_section %}
+                                            <a href="{% url 'template_assessment_fill' assessment_id=tass.id section_id=first_section.id %}" class="btn btn-outline-rp btn-sm py-0.5 px-2.5">Fill</a>
+                                        {% else %}
+                                            <span class="badge bg-secondary">No sections</span>
+                                        {% endif %}
                                     </td>
                                 </tr>
+                                {% endwith %}
                             {% endfor %}
 
                             {% if not assigned_assessments and not assigned_templates %}
@@ -713,14 +725,20 @@
 
                             <!-- Template Assessments -->
                             {% for tass in client_templates %}
+                                {% with first_section=tass.template.sections.first %}
                                 <tr>
                                     <td class="ps-4 fw-semibold text-dark">{{ tass.name }}</td>
                                     <td><span class="badge bg-info text-dark">Dynamic Questionnaire</span></td>
                                     <td><span class="badge bg-primary">In Progress</span></td>
                                     <td class="pe-4 text-end">
-                                        <a href="{% url 'template_assessment_fill' tass.id %}" class="btn btn-outline-rp btn-sm py-0.5 px-2.5">Fill Answers</a>
+                                        {% if first_section %}
+                                            <a href="{% url 'template_assessment_fill' assessment_id=tass.id section_id=first_section.id %}" class="btn btn-outline-rp btn-sm py-0.5 px-2.5">Fill Answers</a>
+                                        {% else %}
+                                            <span class="badge bg-secondary">No sections</span>
+                                        {% endif %}
                                     </td>
                                 </tr>
+                                {% endwith %}
                             {% endfor %}
 
                             {% if not client_assessments and not client_templates %}

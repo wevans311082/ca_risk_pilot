@@ -59,9 +59,20 @@ python manage.py check
 ## Docker Compose Development Environment
 
 ### Start the Stack
-Spin up all containers in the background:
+Build the development image once, then start the stack:
 ```bash
 docker compose up --build -d
+```
+
+For normal Python/template/static app changes after that, do **not** rebuild. The app directory is bind-mounted into the containers, so Django and Celery see your local edits:
+```bash
+docker compose up -d
+```
+
+Rebuild only when you change `requirements/`, `docker/Dockerfile.dev`, or OS-level container dependencies:
+```bash
+docker compose build web
+docker compose up -d
 ```
 
 ### Check Container Status & Health

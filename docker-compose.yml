@@ -46,6 +46,7 @@ services:
       - riskpilot_net
 
   web:
+    image: riskpilot-dev:latest
     build:
       context: .
       dockerfile: docker/Dockerfile.dev
@@ -85,13 +86,15 @@ services:
       - riskpilot_net
 
   migration:
+    image: riskpilot-dev:latest
     build:
       context: .
       dockerfile: docker/Dockerfile.dev
     container_name: riskpilot_migration
-    command: python manage.py migrate --noinput
+    command: sh -c "python manage.py migrate --noinput && python manage.py bootstrap_app"
     volumes:
       - ./app:/app
+      - staticfiles:/app/staticfiles
     environment:
       - DB_HOST=db
       - WAIT_FOR_DB=True
@@ -102,10 +105,17 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
     networks:
       - riskpilot_net
 
   celery_worker:
+    image: riskpilot-dev:latest
     build:
       context: .
       dockerfile: docker/Dockerfile.dev
@@ -142,6 +152,7 @@ services:
       - riskpilot_net
 
   celery_beat:
+    image: riskpilot-dev:latest
     build:
       context: .
       dockerfile: docker/Dockerfile.dev

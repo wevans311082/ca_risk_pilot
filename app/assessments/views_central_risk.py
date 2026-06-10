@@ -17,6 +17,7 @@ from .models import (
     VulnerabilityProbabilityCriteria, ImpactCriteria, Threat,
     CentralRisk, RiskHistory, RiskItem
 )
+from .workflows import CENTRAL_RISK_TRANSITIONS, validate_transition
 
 def get_snapshot(risk):
     """
@@ -203,8 +204,8 @@ def central_risk_edit(request, risk_id=None):
     if risk_id:
         risk = get_object_or_404(CentralRisk, id=risk_id, tenant=tenant)
 
-    # Get active methodology version
-    version = AssessmentMethodologyVersion.objects.filter(tenant=tenant, is_active=True).first()
+    # Use the existing risk's methodology when editing; new risks use the active methodology.
+    version = risk.get_methodology_version() if risk else AssessmentMethodologyVersion.objects.filter(tenant=tenant, is_active=True).first()
     if not version:
         messages.error(request, "Please set up and activate an Assessment Methodology Version first.")
         return redirect('central_risk_list')
@@ -257,6 +258,15 @@ def central_risk_edit(request, risk_id=None):
         is_new = risk is None
         if is_new:
             risk = CentralRisk(tenant=tenant)
+            if status not in {'Draft', 'Active', 'Archived'}:
+                messages.error(request, "New risks can only be created as Draft, Active, or Archived.")
+                return redirect(request.path)
+        else:
+            try:
+                validate_transition(risk.status, status, CENTRAL_RISK_TRANSITIONS, 'central risk')
+            except Exception as e:
+                messages.error(request, str(e))
+                return redirect(request.path)
 
         risk.client = client
         risk.owner = owner
@@ -349,7 +359,10 @@ def central_risk_review(request, risk_id):
         return HttpResponseForbidden("Permission denied. Clients cannot review risks.")
 
     risk = get_object_or_404(CentralRisk, id=risk_id, tenant=tenant)
-    version = AssessmentMethodologyVersion.objects.filter(tenant=tenant, is_active=True).first()
+    version = risk.get_methodology_version()
+    if not version:
+        messages.error(request, "Please set up and activate an Assessment Methodology Version first.")
+        return redirect('central_risk_detail', risk_id=risk.id)
 
     if request.method == 'POST':
         review_notes = request.POST.get('review_notes')
@@ -373,6 +386,11 @@ def central_risk_review(request, risk_id):
             risk.impact_severity = get_object_or_404(ImpactCriteria, id=imp_id, methodology_version=version, tenant=tenant)
 
         # Update review stats
+        try:
+            validate_transition(risk.status, status, CENTRAL_RISK_TRANSITIONS, 'central risk')
+        except Exception as e:
+            messages.error(request, str(e))
+            return redirect(request.path)
         risk.status = status
         risk.review_date = next_review_date
         risk.last_reviewed_at = timezone.now()

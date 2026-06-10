@@ -408,6 +408,19 @@ class DynamicAssessmentBuilderTestCase(TestCase):
         self.assertEqual(ass.total_score, 10.0)
         self.assertEqual(ass.compliance_rating, 'High Compliance')
 
+        # Completed runs are locked against answer edits and re-completion.
+        response = self.http_client.post(fill_url, {
+            'action': 'save',
+            f'answer_{q_choice.id}': choice_yes.id,
+            f'answer_{q_evidence.id}': [self.evidence_doc.id]
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('template_assessment_list'))
+
+        response = self.http_client.post(complete_url)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('template_assessment_list'))
+
 
 class RoleBasedDashboardTests(TestCase):
     def setUp(self):

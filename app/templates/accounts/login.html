@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "auth_base.html" %}
 
 {% block title %}Login - RiskPilot{% endblock %}
 
@@ -22,7 +22,7 @@
                 
                 <form method="post" action="{% url 'login' %}">
                     {% csrf_token %}
-                    <input type="hidden" name="next" value="{{ next|default:'dashboard' }}">
+                    <input type="hidden" name="next" value="{{ next|default:'/' }}">
                     
                     <div class="mb-3">
                         <label for="id_username" class="form-label font-weight-500">Email Address</label>

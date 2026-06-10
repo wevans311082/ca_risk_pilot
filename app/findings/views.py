@@ -135,7 +135,13 @@ def finding_edit(request, finding_id=None):
 
                     # Set ManyToMany evidence files
                     if evidence_ids:
-                        valid_evidence = EvidenceDocument.objects.filter(id__in=evidence_ids, tenant=tenant)
+                        valid_evidence = EvidenceDocument.objects.filter(id__in=evidence_ids, tenant=tenant).filter(
+                            Q(assessment__client=assessment.client) |
+                            Q(risk_item__assessment__client=assessment.client) |
+                            Q(finding__assessment__client=assessment.client) |
+                            Q(treatment__risk_item__assessment__client=assessment.client) |
+                            Q(assessment__isnull=True, risk_item__isnull=True, finding__isnull=True, treatment__isnull=True)
+                        ).distinct()
                         finding.evidence.set(valid_evidence)
                     else:
                         finding.evidence.clear()

@@ -22,6 +22,8 @@ class ReportingSubsystemTests(TestCase):
         # Create Users
         self.admin_user_a = User.objects.create_user(username="admina", email="admin@tenant-a.com", password="password")
         self.std_user_a = User.objects.create_user(username="stda", email="user@tenant-a.com", password="password")
+        self.client_user_a = User.objects.create_user(username="clienta", email="client@tenant-a.com", password="password")
+        self.client_user_b = User.objects.create_user(username="clientb", email="clientb@tenant-a.com", password="password")
         self.user_b = User.objects.create_user(username="userb", email="user@tenant-b.com", password="password")
 
         # Tenant memberships
@@ -34,6 +36,9 @@ class ReportingSubsystemTests(TestCase):
         set_current_tenant(self.tenant_a)
 
         self.client_a = TenantClient.objects.create(tenant=self.tenant_a, name="Client A")
+        self.client_b = TenantClient.objects.create(tenant=self.tenant_a, name="Client B")
+        UserTenantMembership.objects.create(user=self.client_user_a, tenant=self.tenant_a, role="client", client=self.client_a)
+        UserTenantMembership.objects.create(user=self.client_user_b, tenant=self.tenant_a, role="client", client=self.client_b)
         self.methodology = AssessmentMethodology.objects.create(tenant=self.tenant_a, name="Methodology A")
         self.version = AssessmentMethodologyVersion.objects.create(
             tenant=self.tenant_a, methodology=self.methodology, version_number="1.0"
@@ -59,6 +64,14 @@ class ReportingSubsystemTests(TestCase):
             name="Infrastructure Assessment A",
             change_request="CR-101",
             business_process_impact="Critical Server Room operations"
+        )
+        self.assessment_b = Assessment.objects.create(
+            tenant=self.tenant_a,
+            client=self.client_b,
+            methodology_version=self.version,
+            name="Infrastructure Assessment B",
+            change_request="CR-202",
+            business_process_impact="Client B operations"
         )
 
         self.risk_item = RiskItem.objects.create(
@@ -260,4 +273,36 @@ class ReportingSubsystemTests(TestCase):
 
         # Try delete Tenant A report: Should return 404
         response = client_b.get(reverse('delete_report', args=[doc.id]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_client_report_scope_and_generation_restrictions(self):
+        doc_a = ReportDocument.objects.create(
+            tenant=self.tenant_a, assessment=self.assessment, report_type='ExecutiveSummary', file_format='PDF'
+        )
+        doc_b = ReportDocument.objects.create(
+            tenant=self.tenant_a, assessment=self.assessment_b, report_type='RiskRegister', file_format='PDF'
+        )
+        ver_b = ReportVersion.objects.create(document=doc_b, version_number=1, status='Clean')
+        ver_b.file.save("client-b-report.pdf", ContentFile(b"Client B report"))
+
+        client_a = self.login_user(self.client_user_a)
+        response = client_a.get(reverse('reporting_center'))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(doc_a, list(response.context['reports']))
+        self.assertNotIn(doc_b, list(response.context['reports']))
+        self.assertIn(self.assessment, list(response.context['assessments']))
+        self.assertNotIn(self.assessment_b, list(response.context['assessments']))
+
+        response = client_a.post(reverse('generate_report'), {
+            'assessment': self.assessment_b.id,
+            'report_type': 'ExecutiveSummary',
+            'file_format': 'PDF',
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(
+            ReportVersion.objects.filter(document__assessment=self.assessment_b, generated_by=self.client_user_a).exists()
+        )
+
+        from auditlog.signing import generate_signed_url
+        response = client_a.get(generate_signed_url('download_report', args=[ver_b.id]))
         self.assertEqual(response.status_code, 404)

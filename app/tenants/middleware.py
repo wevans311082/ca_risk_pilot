@@ -29,6 +29,12 @@ class TenantMiddleware(MiddlewareMixin):
                 first_membership = membership.first()
                 if first_membership:
                     tenant = first_membership.tenant
+
+            # Superusers created during bootstrap often do not have a subdomain in
+            # local development. Let them land in the first active tenant instead
+            # of bouncing between dashboard and login.
+            if not tenant and request.user.is_superuser:
+                tenant = Tenant.objects.filter(status='active', is_deleted=False).first()
         
         # Bind resolved tenant to request object and thread context
         request.tenant = tenant

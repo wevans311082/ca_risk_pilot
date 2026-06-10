@@ -261,6 +261,44 @@ class CentralRiskRegisterTestCase(TestCase):
         self.assertTrue(history.exists())
         self.assertIn("sync from assessment", history.first().description)
 
+    def test_risk_item_cannot_link_central_risk_from_another_client(self):
+        self.http_client.force_login(self.user)
+
+        central_risk_b = CentralRisk.objects.create(
+            tenant=self.tenant,
+            client=self.client_b,
+            asset_name='Client B Central Risk',
+            threat=self.threat,
+            vulnerability='Client B vulnerability',
+            threat_frequency=self.freq_low,
+            vulnerability_probability=self.prob_low,
+            impact_severity=self.impact_minor,
+            status='Active'
+        )
+        assessment_a = Assessment.objects.create(
+            tenant=self.tenant,
+            client=self.client_a,
+            methodology_version=self.version,
+            name='Client A Assessment',
+            status='InProgress'
+        )
+
+        response = self.http_client.post(reverse('risk_item_add', args=[assessment_a.id]), {
+            'asset_name': 'Client A Asset',
+            'asset_location': 'Client A Site',
+            'asset_owner': 'Client A Owner',
+            'threat': self.threat.id,
+            'vulnerability': 'Client A vulnerability',
+            'existing_controls': 'Client A controls',
+            'threat_frequency': self.freq_low.id,
+            'vulnerability_probability': self.prob_low.id,
+            'impact_severity': self.impact_minor.id,
+            'central_risk': central_risk_b.id,
+        })
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(RiskItem.objects.filter(assessment=assessment_a, central_risk=central_risk_b).exists())
+
     def test_lifecycle_and_status_transitions(self):
         """
         Verify status transitions and acceptance field cleanups.

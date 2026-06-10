@@ -12,6 +12,7 @@ from django.urls import reverse
 from auditlog.models import AuditEvent
 from tenants.models import Client
 from assessments.models import Assessment, RiskItem, RiskTreatment, TemplateAssessment
+from assessments.workflows import evidence_is_clean, scope_evidence_for_user
 from findings.models import Finding
 from evidence.models import EvidenceDocument, EvidenceVersion
 from evidence.tasks import scan_file_clamav
@@ -105,19 +106,34 @@ def add_comment(request):
 
     # Check and attach correct entity target
     if entity_type == 'assessment':
-        comment.assessment = get_object_or_404(Assessment, id=entity_id, tenant=tenant)
+        qs = Assessment.objects.filter(id=entity_id, tenant=tenant)
+        if getattr(request, 'user_role', None) == 'client':
+            qs = qs.filter(client=getattr(request, 'user_client', None))
+        comment.assessment = get_object_or_404(qs)
         item_title = comment.assessment.name
     elif entity_type == 'risk_item':
-        comment.risk_item = get_object_or_404(RiskItem, id=entity_id, assessment__tenant=tenant)
+        qs = RiskItem.objects.filter(id=entity_id, assessment__tenant=tenant)
+        if getattr(request, 'user_role', None) == 'client':
+            qs = qs.filter(assessment__client=getattr(request, 'user_client', None))
+        comment.risk_item = get_object_or_404(qs)
         item_title = comment.risk_item.asset_name
     elif entity_type == 'finding':
-        comment.finding = get_object_or_404(Finding, id=entity_id, tenant=tenant)
+        qs = Finding.objects.filter(id=entity_id, tenant=tenant)
+        if getattr(request, 'user_role', None) == 'client':
+            qs = qs.filter(assessment__client=getattr(request, 'user_client', None))
+        comment.finding = get_object_or_404(qs)
         item_title = comment.finding.title
     elif entity_type == 'treatment':
-        comment.treatment = get_object_or_404(RiskTreatment, id=entity_id, risk_item__assessment__tenant=tenant)
+        qs = RiskTreatment.objects.filter(id=entity_id, risk_item__assessment__tenant=tenant)
+        if getattr(request, 'user_role', None) == 'client':
+            qs = qs.filter(risk_item__assessment__client=getattr(request, 'user_client', None))
+        comment.treatment = get_object_or_404(qs)
         item_title = f"Treatment: {comment.treatment.risk_item.asset_name}"
     elif entity_type == 'template_assessment':
-        comment.template_assessment = get_object_or_404(TemplateAssessment, id=entity_id, tenant=tenant)
+        qs = TemplateAssessment.objects.filter(id=entity_id, tenant=tenant)
+        if getattr(request, 'user_role', None) == 'client':
+            qs = qs.filter(client=getattr(request, 'user_client', None))
+        comment.template_assessment = get_object_or_404(qs)
         item_title = comment.template_assessment.name
     else:
         messages.error(request, "Invalid comment target.")
@@ -291,11 +307,11 @@ def evidence_requests_list(request):
         )
 
         if assessment_id:
-            req.assessment = get_object_or_404(Assessment, id=assessment_id, tenant=tenant)
+            req.assessment = get_object_or_404(Assessment, id=assessment_id, tenant=tenant, client=client_obj)
         if risk_item_id:
-            req.risk_item = get_object_or_404(RiskItem, id=risk_item_id, assessment__tenant=tenant)
+            req.risk_item = get_object_or_404(RiskItem, id=risk_item_id, assessment__tenant=tenant, assessment__client=client_obj)
         if finding_id:
-            req.finding = get_object_or_404(Finding, id=finding_id, tenant=tenant)
+            req.finding = get_object_or_404(Finding, id=finding_id, tenant=tenant, assessment__client=client_obj)
 
         with transaction.atomic():
             req.save()
@@ -349,7 +365,11 @@ def submit_evidence_response(request, request_id):
     req = get_object_or_404(EvidenceRequest, id=request_id, tenant=tenant)
 
     # Restriction: only client company memberships can respond
-    if user_role == 'client' and req.client != user_client:
+    if user_role != 'client':
+        messages.error(request, "Permission denied. Only client users can submit evidence responses.")
+        return redirect('evidence_requests_list')
+
+    if req.client != user_client:
         messages.error(request, "Permission denied. You cannot respond to requests for other client companies.")
         return redirect('evidence_requests_list')
 
@@ -403,7 +423,12 @@ def submit_evidence_response(request, request_id):
             # Trigger async malware scan
             scan_file_clamav.delay(version.id)
         else:
-            doc = get_object_or_404(EvidenceDocument, id=evidence_id, tenant=tenant)
+            doc = get_object_or_404(
+                scope_evidence_for_user(
+                    EvidenceDocument.objects.filter(id=evidence_id, tenant=tenant),
+                    request,
+                )
+            )
 
         req.submitted_evidence = doc
         req.client_response = client_response
@@ -458,6 +483,9 @@ def approve_reject_evidence_request(request, request_id):
     if action == 'approve':
         if not req.submitted_evidence:
             messages.error(request, "No submitted evidence found to approve.")
+            return redirect('evidence_requests_list')
+        if not evidence_is_clean(req.submitted_evidence):
+            messages.error(request, "Submitted evidence cannot be approved until its latest version has passed malware scanning.")
             return redirect('evidence_requests_list')
 
         with transaction.atomic():

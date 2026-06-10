@@ -82,6 +82,18 @@ def document_library(request):
                     else:
                         treatment = get_object_or_404(RiskTreatment, id=treatment_id, risk_item__tenant=tenant)
 
+                linked_clients = {
+                    obj for obj in [
+                        assessment.client if assessment else None,
+                        risk_item.assessment.client if risk_item else None,
+                        finding.assessment.client if finding else None,
+                        treatment.risk_item.assessment.client if treatment else None,
+                    ] if obj is not None
+                }
+                if len(linked_clients) > 1:
+                    messages.error(request, "Evidence links must all belong to the same client.")
+                    return redirect('document_library')
+
                 # Create logical document
                 doc = EvidenceDocument.objects.create(
                     tenant=tenant,

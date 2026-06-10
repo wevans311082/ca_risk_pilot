@@ -6,6 +6,12 @@ from django.db import transaction
 from django.utils import timezone
 from tenants.models import UserTenantMembership
 from assessments.models import Assessment
+from assessments.workflows import (
+    can_manage_risk_content,
+    scope_assessments_for_user,
+    scope_report_versions_for_user,
+    scope_reports_for_user,
+)
 from .models import ReportDocument, ReportVersion, ReportDownloadHistory
 from .tasks import generate_report_task
 
@@ -20,12 +26,18 @@ def reporting_center(request):
         messages.error(request, "No active tenant association found.")
         return redirect('login')
 
-    # Fetch all assessments in the tenant for dropdown/generation
-    assessments = Assessment.objects.filter(tenant=tenant).select_related('client')
+    # Fetch assessments visible to the current user for dropdown/generation
+    assessments = scope_assessments_for_user(
+        Assessment.objects.filter(tenant=tenant).select_related('client'),
+        request,
+    )
 
-    # Fetch all logical report documents for the tenant
-    reports = ReportDocument.objects.filter(tenant=tenant).select_related('assessment').prefetch_related(
-        'versions', 'versions__downloads'
+    # Fetch logical report documents visible to the current user
+    reports = scope_reports_for_user(
+        ReportDocument.objects.filter(tenant=tenant).select_related('assessment').prefetch_related(
+            'versions', 'versions__downloads'
+        ),
+        request,
     )
 
     # Compile type and format choices to build select dropdowns in template
@@ -51,6 +63,10 @@ def generate_report(request):
         return redirect('login')
 
     if request.method == 'POST':
+        if not can_manage_risk_content(request):
+            messages.error(request, "Permission denied. You cannot generate reports.")
+            return redirect('reporting_center')
+
         assessment_id = request.POST.get('assessment')
         report_type = request.POST.get('report_type')
         file_format = request.POST.get('file_format')
@@ -59,8 +75,13 @@ def generate_report(request):
             messages.error(request, "All generation fields (Assessment, Type, Format) are required.")
             return redirect('reporting_center')
 
-        # Verify assessment belongs to active tenant
-        assessment = get_object_or_404(Assessment, id=assessment_id, tenant=tenant)
+        # Verify assessment belongs to active tenant and current user's allowed scope
+        assessment = get_object_or_404(
+            scope_assessments_for_user(
+                Assessment.objects.filter(id=assessment_id, tenant=tenant),
+                request,
+            )
+        )
 
         try:
             with transaction.atomic():
@@ -115,7 +136,12 @@ def download_report(request, version_id):
     if not sig or not verify_signed_url(request.path, sig):
         return HttpResponseForbidden("Access Denied: Invalid or expired signed URL.")
 
-    version = get_object_or_404(ReportVersion, id=version_id, document__tenant=tenant)
+    version = get_object_or_404(
+        scope_report_versions_for_user(
+            ReportVersion.objects.filter(id=version_id, document__tenant=tenant),
+            request,
+        )
+    )
 
     # Security check: Quarantine block
     if version.status != 'Clean':
@@ -170,7 +196,12 @@ def delete_report(request, doc_id):
         messages.error(request, "No active tenant association found.")
         return redirect('login')
 
-    doc = get_object_or_404(ReportDocument, id=doc_id, tenant=tenant)
+    doc = get_object_or_404(
+        scope_reports_for_user(
+            ReportDocument.objects.filter(id=doc_id, tenant=tenant),
+            request,
+        )
+    )
 
     # RBAC logic verification: Check if admin/owner
     is_authorized = UserTenantMembership.objects.filter(

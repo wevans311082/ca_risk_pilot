@@ -62,6 +62,9 @@ INSTALLED_APPS = [
 ]
 
 AUTH_USER_MODEL = 'accounts.User'
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'dashboard'
+LOGOUT_REDIRECT_URL = 'login'
 
 
 MIDDLEWARE = [
@@ -224,6 +227,13 @@ LOGGING = {
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_AGE = 1800  # 30 minutes in seconds
 SESSION_SAVE_EVERY_REQUEST = True
+
+# One-shot bootstrap defaults used by the Docker migration service.
+BOOTSTRAP_TENANT_NAME = env('BOOTSTRAP_TENANT_NAME', default='RiskPilot Local')
+BOOTSTRAP_TENANT_DOMAIN = env('BOOTSTRAP_TENANT_DOMAIN', default='local')
+BOOTSTRAP_SUPERUSER_USERNAME = env('DJANGO_SUPERUSER_USERNAME', default='admin@riskpilot.local')
+BOOTSTRAP_SUPERUSER_EMAIL = env('DJANGO_SUPERUSER_EMAIL', default=BOOTSTRAP_SUPERUSER_USERNAME)
+BOOTSTRAP_SUPERUSER_PASSWORD = env('DJANGO_SUPERUSER_PASSWORD', default='')
 
 # Startup Dependency Check (if enabled)
 if env.bool('WAIT_FOR_DB', default=False):

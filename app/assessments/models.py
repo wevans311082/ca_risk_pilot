@@ -241,6 +241,8 @@ class CentralRisk(TenantOwnedSoftDeleteModel):
     acceptance_expiry = models.DateField(null=True, blank=True)
 
     def get_methodology_version(self):
+        if self.threat_frequency_id:
+            return self.threat_frequency.methodology_version
         return AssessmentMethodologyVersion.objects.filter(tenant=self.tenant, is_active=True).first()
 
     def check_acceptance_expiry(self):
@@ -650,4 +652,3 @@ class TemplateAnswer(models.Model):
 
     def __str__(self):
         return f"{self.assessment.name} -> {self.question.text[:30]}"
-

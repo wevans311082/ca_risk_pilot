@@ -14,6 +14,12 @@ from .models import (
     ThreatCategory, Threat, Assessment, RiskItem, RiskTreatment, TemplateAssessment,
     CentralRisk, RiskHistory
 )
+from .workflows import (
+    ASSESSMENT_TRANSITIONS,
+    allowed_dashboard_types,
+    default_dashboard_type,
+    validate_transition,
+)
 from auditlog.utils import log_audit_event
 from collaboration.views import create_activity_feed_entry
 from collaboration.models import CollaborationActivity, EvidenceRequest
@@ -35,16 +41,10 @@ def dashboard(request):
     user_client = getattr(request, 'user_client', None)
 
     # 1. Dashboard switching permissions
-    allowed_types = ['executive', 'assessor', 'client']
-    default_type = 'executive'
-    if user_role == 'client':
-        default_type = 'client'
-    elif user_role == 'assessor':
-        default_type = 'assessor'
-
-    dashboard_type = request.GET.get('dashboard_type', default_type)
+    allowed_types = allowed_dashboard_types(request)
+    dashboard_type = request.GET.get('dashboard_type', default_dashboard_type(request))
     if dashboard_type not in allowed_types:
-        dashboard_type = default_type
+        dashboard_type = default_dashboard_type(request)
 
     # Force client users to their client dashboard
     if user_role == 'client':
@@ -372,6 +372,11 @@ def assessment_detail(request, assessment_id):
             return redirect('assessment_detail', assessment_id=assessment.id)
         new_status = request.POST.get('status')
         if new_status in dict(Assessment.STATUS_CHOICES):
+            try:
+                validate_transition(assessment.status, new_status, ASSESSMENT_TRANSITIONS, 'assessment')
+            except Exception as e:
+                messages.error(request, str(e))
+                return redirect('assessment_detail', assessment_id=assessment.id)
             assessment.status = new_status
             assessment.save()
             if new_status == 'Completed':
@@ -567,7 +572,12 @@ def risk_item_edit(request, assessment_id, risk_item_id=None):
         # Link Central Risk
         central_risk_id = request.POST.get('central_risk')
         if central_risk_id:
-            central_risk = get_object_or_404(CentralRisk, id=central_risk_id, tenant=tenant)
+            central_risk = get_object_or_404(
+                CentralRisk,
+                id=central_risk_id,
+                tenant=tenant,
+                client=assessment.client,
+            )
             risk_item.central_risk = central_risk
         elif 'publish_to_register' in request.POST and not risk_item.central_risk:
             from .views_central_risk import get_snapshot

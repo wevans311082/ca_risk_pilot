@@ -463,6 +463,9 @@ def template_assessment_fill(request, assessment_id, section_id):
         assessment = get_object_or_404(TemplateAssessment, id=assessment_id, tenant=tenant, client=user_client)
     else:
         assessment = get_object_or_404(TemplateAssessment, id=assessment_id, tenant=tenant)
+    if assessment.status == 'Completed' and request.method == 'POST':
+        messages.error(request, "Completed assessment runs are locked. Create a new run or reopen the assessment before editing answers.")
+        return redirect('template_assessment_list')
     template = assessment.template
     sections = template.sections.all()
     current_section = get_object_or_404(TemplateSection, id=section_id, template=template)
@@ -576,6 +579,9 @@ def template_assessment_complete(request, assessment_id):
         assessment = get_object_or_404(TemplateAssessment, id=assessment_id, tenant=tenant, client=user_client)
     else:
         assessment = get_object_or_404(TemplateAssessment, id=assessment_id, tenant=tenant)
+    if assessment.status == 'Completed':
+        messages.warning(request, "This assessment run is already completed.")
+        return redirect('template_assessment_list')
     template = assessment.template
     
     # Validate required answers
