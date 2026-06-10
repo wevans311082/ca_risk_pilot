@@ -110,6 +110,7 @@ def dashboard(request):
         'selected_assessment_id': assessment_filter_id,
         'date_start': date_start_str,
         'date_end': date_end_str,
+        'change_assessments': assessments.order_by('-created_at'),
     }
 
     if dashboard_type == 'executive':
@@ -335,8 +336,8 @@ def create_assessment(request):
             ip_address=request.META.get('REMOTE_ADDR')
         )
         
-        messages.success(request, f"Assessment '{name}' created successfully.")
-        return redirect('assessment_detail', assessment_id=assessment.id)
+        messages.success(request, f"Assessment '{name}' created successfully. Add risk rows in the spreadsheet.")
+        return redirect('risk_item_spreadsheet', assessment_id=assessment.id)
         
     clients = Client.objects.filter(tenant=tenant)
     methodologies = AssessmentMethodologyVersion.objects.filter(tenant=tenant, is_active=True).select_related('methodology')
@@ -447,11 +448,11 @@ def risk_item_grid(request, assessment_id):
         return redirect('login')
 
     user_role = getattr(request, 'user_role', None)
+    user_client = getattr(request, 'user_client', None)
     if user_role == 'client':
-        messages.error(request, "Permission denied. Client users cannot bulk edit risk items.")
-        return redirect('dashboard')
-
-    assessment = get_object_or_404(Assessment, id=assessment_id, tenant=tenant)
+        assessment = get_object_or_404(Assessment, id=assessment_id, tenant=tenant, client=user_client)
+    else:
+        assessment = get_object_or_404(Assessment, id=assessment_id, tenant=tenant)
     version = assessment.methodology_version
 
     if request.method == 'POST':
@@ -531,6 +532,7 @@ def risk_item_grid(request, assessment_id):
         'impact_criteria': ImpactCriteria.objects.filter(methodology_version=version, tenant=tenant),
         'treatment_statuses': RiskTreatment.STATUS_CHOICES,
         'active_tenant': tenant,
+        'read_only': user_role == 'client',
     })
 
 

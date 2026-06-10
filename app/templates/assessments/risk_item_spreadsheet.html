@@ -120,11 +120,18 @@
                 <div class="col-md-3"><span class="text-muted small d-block">Asset</span><strong>{{ assessment.asset|default:"-" }}</strong></div>
                 <div class="col-md-3"><span class="text-muted small d-block">Location</span><strong>{{ assessment.location|default:"-" }}</strong></div>
                 <div class="col-md-3"><span class="text-muted small d-block">Owner</span><strong>{{ assessment.owner|default:"-" }}</strong></div>
-                <div class="col-md-3 text-md-end"><button class="btn btn-rp-primary" type="submit"><i class="bi bi-save me-2"></i>Save Spreadsheet</button></div>
+                <div class="col-md-3 text-md-end">
+                    {% if not read_only %}
+                    <button class="btn btn-rp-primary" type="submit"><i class="bi bi-save me-2"></i>Save Spreadsheet</button>
+                    {% else %}
+                    <span class="badge bg-secondary px-3 py-2">Read only</span>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
 
+    <fieldset {% if read_only %}disabled{% endif %}>
     <div class="sheet-shell shadow-sm">
         <table class="sheet-table">
             <thead>
@@ -178,10 +185,13 @@
             </tbody>
         </table>
     </div>
+    </fieldset>
 
     <div class="d-flex justify-content-end gap-2 mt-3">
         <a href="{% url 'assessment_detail' assessment.id %}" class="btn btn-outline-secondary">Cancel</a>
+        {% if not read_only %}
         <button class="btn btn-rp-primary" type="submit"><i class="bi bi-save me-2"></i>Save Spreadsheet</button>
+        {% endif %}
     </div>
 </form>
 {% endblock %}

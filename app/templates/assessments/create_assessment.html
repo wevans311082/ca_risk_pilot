@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Create Assessment - RiskPilot{% endblock %}
+{% block title %}New Change Assessment - RiskPilot{% endblock %}
 
 {% block content %}
 <div class="row mb-4">
@@ -11,7 +11,7 @@
                 <li class="breadcrumb-item active" aria-current="page">New Assessment</li>
             </ol>
         </nav>
-        <h1 class="h2 mb-0"><i class="bi bi-file-earmark-plus me-2 text-primary" style="color: var(--rp-blue-primary) !important;"></i>Create Risk Assessment</h1>
+        <h1 class="h2 mb-0"><i class="bi bi-file-earmark-spreadsheet me-2 text-primary" style="color: var(--rp-blue-primary) !important;"></i>New Change Risk Assessment</h1>
     </div>
 </div>
 
@@ -19,18 +19,18 @@
     <div class="col-lg-8">
         <div class="card card-rp shadow-sm mb-5">
             <div class="card-header-rp">
-                <i class="bi bi-gear-fill me-2 text-primary"></i> Assessment Settings & Structure
+                <i class="bi bi-gear-fill me-2 text-primary"></i> Change Details
             </div>
             <div class="card-body p-4">
                 <form method="post" action="{% url 'create_assessment' %}">
                     {% csrf_token %}
                     
                     <!-- Core Parameters Section -->
-                    <h5 class="border-bottom pb-2 mb-3"><i class="bi bi-info-circle text-primary me-2"></i>Core Parameters</h5>
+                    <h5 class="border-bottom pb-2 mb-3"><i class="bi bi-info-circle text-primary me-2"></i>Core Change Details</h5>
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
-                            <label for="assessment_name" class="form-label fw-semibold">Assessment Name <span class="text-danger">*</span></label>
-                            <input type="text" name="name" id="assessment_name" required class="form-control" placeholder="e.g. 2026 Core Infrastructure Assessment">
+                            <label for="assessment_name" class="form-label fw-semibold">Change / Assessment Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" id="assessment_name" required class="form-control" placeholder="e.g. CR-4091 Finance System Migration">
                         </div>
                         <div class="col-md-6">
                             <label for="client_select" class="form-label fw-semibold">Client / Organization <span class="text-danger">*</span></label>
@@ -44,7 +44,7 @@
                         <div class="col-md-6">
                             <label for="methodology_select" class="form-label fw-semibold">Methodology Version <span class="text-danger">*</span></label>
                             <select name="methodology_version" id="methodology_select" required class="form-select">
-                                <option value="" disabled selected>-- Select Versioned Rules --</option>
+                                <option value="" disabled selected>-- Select risk scoring rules --</option>
                                 {% for m in methodologies %}
                                     <option value="{{ m.id }}">{{ m.methodology.name }} (v{{ m.version_number }})</option>
                                 {% endfor %}
@@ -57,7 +57,7 @@
                     </div>
                     
                     <!-- Main Asset Scope Section -->
-                    <h5 class="border-bottom pb-2 mb-3"><i class="bi bi-hdd-network text-primary me-2"></i>Main Asset Scope</h5>
+                    <h5 class="border-bottom pb-2 mb-3"><i class="bi bi-hdd-network text-primary me-2"></i>Default Asset Scope</h5>
                     <div class="row g-3 mb-4">
                         <div class="col-md-4">
                             <label for="asset" class="form-label fw-semibold">Asset Name</label>
@@ -74,7 +74,7 @@
                     </div>
 
                     <!-- Inherent Context Section -->
-                    <h5 class="border-bottom pb-2 mb-3"><i class="bi bi-shield-exclamation text-primary me-2"></i>Inherent Context</h5>
+                    <h5 class="border-bottom pb-2 mb-3"><i class="bi bi-shield-exclamation text-primary me-2"></i>Default Risk Context</h5>
                     <div class="mb-3">
                         <label for="vulnerability" class="form-label fw-semibold">Vulnerability Detail</label>
                         <textarea name="vulnerability" id="vulnerability" class="form-control" rows="2" placeholder="Describe core vulnerability..."></textarea>
@@ -107,7 +107,7 @@
 
                     <div class="d-flex gap-3">
                         <button type="submit" class="btn btn-rp-primary px-4 flex-grow-1">
-                            <i class="bi bi-check2-circle me-2"></i> Initialize Assessment Run
+                            <i class="bi bi-file-spreadsheet me-2"></i> Create & Open Spreadsheet
                         </button>
                         <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary px-4">
                             Cancel
