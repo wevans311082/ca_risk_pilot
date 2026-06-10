@@ -90,6 +90,8 @@ docker compose logs -f
 - **Run Migrations manually**: `docker compose run --rm web python manage.py migrate`
 - **Create Superuser**: `docker compose run --rm web python manage.py createsuperuser`
 - **Shell**: `docker compose run --rm web python manage.py shell`
+- **Seed base reference data**: `docker compose run --rm web python manage.py seed_base_data --tenant-domain local`
+- **Seed optional demo data**: `docker compose run --rm web python manage.py seed_demo_data`
 
 ---
 

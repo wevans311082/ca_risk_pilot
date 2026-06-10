@@ -234,6 +234,7 @@ BOOTSTRAP_TENANT_DOMAIN = env('BOOTSTRAP_TENANT_DOMAIN', default='local')
 BOOTSTRAP_SUPERUSER_USERNAME = env('DJANGO_SUPERUSER_USERNAME', default='admin@riskpilot.local')
 BOOTSTRAP_SUPERUSER_EMAIL = env('DJANGO_SUPERUSER_EMAIL', default=BOOTSTRAP_SUPERUSER_USERNAME)
 BOOTSTRAP_SUPERUSER_PASSWORD = env('DJANGO_SUPERUSER_PASSWORD', default='')
+SEED_BASE_DATA = env.bool('SEED_BASE_DATA', default=True)
 
 # Startup Dependency Check (if enabled)
 if env.bool('WAIT_FOR_DB', default=False):

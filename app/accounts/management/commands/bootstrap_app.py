@@ -76,3 +76,7 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f"Ensured owner membership for '{email}' in '{tenant.name}'."))
             finally:
                 clear_current_tenant()
+
+        if getattr(settings, "SEED_BASE_DATA", True):
+            self.stdout.write("Seeding base reference data...")
+            call_command("seed_base_data", tenant_domain=tenant_domain)
