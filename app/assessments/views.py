@@ -434,6 +434,105 @@ def assessment_detail(request, assessment_id):
         'user_role': user_role,
     })
 
+
+@login_required
+@transaction.atomic
+def risk_item_grid(request, assessment_id):
+    """
+    Spreadsheet-style bulk entry for risk assessment rows.
+    """
+    tenant = getattr(request, 'tenant', None)
+    if not tenant:
+        messages.error(request, "No active tenant association found.")
+        return redirect('login')
+
+    user_role = getattr(request, 'user_role', None)
+    if user_role == 'client':
+        messages.error(request, "Permission denied. Client users cannot bulk edit risk items.")
+        return redirect('dashboard')
+
+    assessment = get_object_or_404(Assessment, id=assessment_id, tenant=tenant)
+    version = assessment.methodology_version
+
+    if request.method == 'POST':
+        row_numbers = sorted({key.split('_')[-1] for key in request.POST if key.startswith('asset_name_')}, key=lambda value: int(value))
+        saved_count = 0
+        for row in row_numbers:
+            asset_name = request.POST.get(f'asset_name_{row}', '').strip()
+            threat_id = request.POST.get(f'threat_{row}')
+            threat_freq_id = request.POST.get(f'threat_frequency_{row}')
+            vuln_prob_id = request.POST.get(f'vulnerability_probability_{row}')
+            imp_sev_id = request.POST.get(f'impact_severity_{row}')
+            risk_item_id = request.POST.get(f'risk_item_id_{row}')
+
+            if not any([asset_name, threat_id, threat_freq_id, vuln_prob_id, imp_sev_id, risk_item_id]):
+                continue
+            if not all([asset_name, threat_id, threat_freq_id, vuln_prob_id, imp_sev_id]):
+                messages.error(request, f"Row {row}: asset, threat, frequency, probability, and impact are required.")
+                return redirect('risk_item_grid', assessment_id=assessment.id)
+
+            risk_item = RiskItem.objects.filter(id=risk_item_id, assessment=assessment, tenant=tenant).first() if risk_item_id else RiskItem(tenant=tenant, assessment=assessment)
+            risk_item.asset_name = asset_name
+            risk_item.asset_location = request.POST.get(f'asset_location_{row}', '').strip()
+            risk_item.asset_owner = request.POST.get(f'asset_owner_{row}', '').strip()
+            risk_item.threat = get_object_or_404(Threat, id=threat_id, tenant=tenant)
+            risk_item.vulnerability = request.POST.get(f'vulnerability_{row}', '').strip()
+            risk_item.existing_controls = request.POST.get(f'existing_controls_{row}', '').strip()
+            risk_item.confidentiality_affected = f'confidentiality_affected_{row}' in request.POST
+            risk_item.integrity_affected = f'integrity_affected_{row}' in request.POST
+            risk_item.availability_affected = f'availability_affected_{row}' in request.POST
+            risk_item.threat_frequency = get_object_or_404(ThreatFrequencyCriteria, id=threat_freq_id, methodology_version=version, tenant=tenant)
+            risk_item.vulnerability_probability = get_object_or_404(VulnerabilityProbabilityCriteria, id=vuln_prob_id, methodology_version=version, tenant=tenant)
+            risk_item.impact_severity = get_object_or_404(ImpactCriteria, id=imp_sev_id, methodology_version=version, tenant=tenant)
+            risk_item.proposed_controls = request.POST.get(f'proposed_controls_{row}', '').strip()
+            risk_item.additional_mitigations = request.POST.get(f'additional_mitigations_{row}', '').strip()
+
+            residual_freq_id = request.POST.get(f'residual_threat_frequency_{row}')
+            residual_prob_id = request.POST.get(f'residual_vulnerability_probability_{row}')
+            residual_impact_id = request.POST.get(f'residual_impact_severity_{row}')
+            risk_item.residual_threat_frequency = get_object_or_404(ThreatFrequencyCriteria, id=residual_freq_id, methodology_version=version, tenant=tenant) if residual_freq_id else None
+            risk_item.residual_vulnerability_probability = get_object_or_404(VulnerabilityProbabilityCriteria, id=residual_prob_id, methodology_version=version, tenant=tenant) if residual_prob_id else None
+            risk_item.residual_impact_severity = get_object_or_404(ImpactCriteria, id=residual_impact_id, methodology_version=version, tenant=tenant) if residual_impact_id else None
+            risk_item.save()
+
+            treatment, _ = RiskTreatment.objects.get_or_create(tenant=tenant, risk_item=risk_item)
+            treatment.action = request.POST.get(f'treatment_action_{row}', '').strip()
+            treatment.owner = request.POST.get(f'treatment_owner_{row}', '').strip()
+            treatment.target_date = request.POST.get(f'treatment_target_date_{row}') or None
+            treatment.status = request.POST.get(f'treatment_status_{row}', 'Open')
+            treatment.save()
+            saved_count += 1
+
+        log_audit_event(
+            tenant=tenant,
+            user=request.user,
+            event_type='RISK_ITEM',
+            action='BULK_UPDATE',
+            payload={'assessment_id': assessment.id, 'saved_rows': saved_count},
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+        messages.success(request, f"Saved {saved_count} risk register row(s).")
+        return redirect('assessment_detail', assessment_id=assessment.id)
+
+    risk_items = list(assessment.risk_items.all().select_related(
+        'threat', 'threat__category', 'threat_frequency', 'vulnerability_probability',
+        'impact_severity', 'residual_threat_frequency', 'residual_vulnerability_probability',
+        'residual_impact_severity',
+    ).prefetch_related('treatment'))
+    blank_rows = range(len(risk_items) + 1, len(risk_items) + 6)
+
+    return render(request, 'assessments/risk_item_grid.html', {
+        'assessment': assessment,
+        'risk_items': risk_items,
+        'blank_rows': blank_rows,
+        'threats': Threat.objects.filter(tenant=tenant).select_related('category').order_by('category__name', 'name'),
+        'freq_criteria': ThreatFrequencyCriteria.objects.filter(methodology_version=version, tenant=tenant),
+        'prob_criteria': VulnerabilityProbabilityCriteria.objects.filter(methodology_version=version, tenant=tenant),
+        'impact_criteria': ImpactCriteria.objects.filter(methodology_version=version, tenant=tenant),
+        'treatment_statuses': RiskTreatment.STATUS_CHOICES,
+        'active_tenant': tenant,
+    })
+
 @login_required
 @transaction.atomic
 def risk_item_edit(request, assessment_id, risk_item_id=None):

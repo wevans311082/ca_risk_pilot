@@ -1,0 +1,8 @@
+<select class="form-select" name="{{ name_prefix }}{{ row }}" {% if required %}required{% endif %}>
+    <option value="">-- Select --</option>
+    {% for crit in criteria %}
+        <option value="{{ crit.id }}" {% if selected_id == crit.id %}selected{% endif %}>
+            {{ crit.label }} ({{ crit.score }})
+        </option>
+    {% endfor %}
+</select>

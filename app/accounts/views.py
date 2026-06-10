@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from auditlog.utils import log_audit_event
+from tenants.models import Tenant
 from .mfa import verify_totp, generate_mfa_secret
 from .models import UserProfile
 import urllib.parse
@@ -17,6 +18,15 @@ class RiskPilotLoginView(LoginView):
     to MFA verification if MFA is enabled on the user's profile.
     """
     template_name = 'accounts/login.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['m365_sso_available'] = Tenant.objects.filter(
+            status='active',
+            is_deleted=False,
+            m365_sso_enabled=True,
+        ).exclude(m365_client_id='').exists()
+        return context
     
     def form_valid(self, form):
         user = form.get_user()

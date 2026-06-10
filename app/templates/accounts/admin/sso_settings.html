@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Microsoft SSO - RiskPilot{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+    <div>
+        <h1 class="h3 mb-1">Microsoft Sign-In</h1>
+        <p class="text-muted mb-0">Connect {{ active_tenant.name }} to Microsoft Entra ID using OpenID Connect.</p>
+    </div>
+    <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-2"></i>Admin Console</a>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <form method="post" class="card card-rp">
+            {% csrf_token %}
+            <div class="card-body">
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+                <div class="row g-3">
+                    <div class="col-12">
+                        <div class="form-check form-switch">
+                            {{ form.m365_sso_enabled }}
+                            <label class="form-check-label" for="{{ form.m365_sso_enabled.id_for_label }}">Enable Microsoft sign-in</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="{{ form.microsoft_tenant_id.id_for_label }}">Microsoft tenant ID</label>
+                        {{ form.microsoft_tenant_id }}
+                        {{ form.microsoft_tenant_id.errors }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="{{ form.m365_client_id.id_for_label }}">Application client ID</label>
+                        {{ form.m365_client_id }}
+                        {{ form.m365_client_id.errors }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="{{ form.m365_client_secret.id_for_label }}">Application client secret</label>
+                        {{ form.m365_client_secret }}
+                        <div class="form-text">{{ form.m365_client_secret.help_text }}</div>
+                        {{ form.m365_client_secret.errors }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="{{ form.m365_default_role.id_for_label }}">Default role</label>
+                        {{ form.m365_default_role }}
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            {{ form.m365_auto_create_users }}
+                            <label class="form-check-label" for="{{ form.m365_auto_create_users.id_for_label }}">Create users on first Microsoft sign-in</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-white d-flex justify-content-end gap-2">
+                <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+                <button type="submit" class="btn btn-rp-primary"><i class="bi bi-check2 me-2"></i>Save Settings</button>
+            </div>
+        </form>
+    </div>
+    <div class="col-lg-4">
+        <div class="card card-rp">
+            <div class="card-body">
+                <h2 class="h5">Entra App Registration</h2>
+                <div class="text-muted small mb-2">Redirect URI</div>
+                <code class="d-block bg-light border rounded p-2 mb-3 text-break">{{ redirect_uri }}</code>
+                <div class="text-muted small mb-2">Required delegated permissions</div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <span class="badge bg-light text-dark">openid</span>
+                    <span class="badge bg-light text-dark">email</span>
+                    <span class="badge bg-light text-dark">profile</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

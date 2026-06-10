@@ -252,12 +252,15 @@
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {% if 'ai' in request.path or request.resolver_match.url_name == 'client_list' %}active{% endif %}" href="#" id="workspaceDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle {% if 'accounts/admin' in request.path or 'ai' in request.path or request.resolver_match.url_name == 'client_list' %}active{% endif %}" href="#" id="workspaceDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-grid-3x3-gap me-1"></i> Workspace
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="workspaceDropdown">
                             <li><h6 class="dropdown-header">Organisation</h6></li>
                             <li><a class="dropdown-item" href="{% url 'client_list' %}"><i class="bi bi-people"></i><span>Clients</span></a></li>
+                            {% if user.is_superuser or user_role == 'owner' or user_role == 'admin' %}
+                            <li><a class="dropdown-item" href="{% url 'admin_dashboard' %}"><i class="bi bi-person-gear"></i><span>Admin Console</span></a></li>
+                            {% endif %}
                             <li><hr class="dropdown-divider"></li>
                             <li><h6 class="dropdown-header">AI Assistant</h6></li>
                             <li><a class="dropdown-item" href="{% url 'ai_history' %}"><i class="bi bi-journal-text"></i><span>AI Audit History</span></a></li>
@@ -301,6 +304,8 @@
                             <span class="nav-user-email">{{ user.email }}</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="userDropdown">
+                            <li><a class="dropdown-item" href="{% url 'mfa_setup' %}"><i class="bi bi-shield-lock me-2"></i>MFA Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-danger" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
                         </ul>
                     </div>

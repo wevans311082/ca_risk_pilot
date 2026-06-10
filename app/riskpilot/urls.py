@@ -1,10 +1,10 @@
 """
 URL configuration for config project.
 """
-from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.http import JsonResponse
+from django.shortcuts import redirect
 from django.db import connections
 from django.db.utils import OperationalError
 
@@ -18,8 +18,13 @@ def health_check(request):
     
     return JsonResponse({"status": "healthy", "database": "ok"})
 
+def admin_redirect(request):
+    if request.user.is_authenticated:
+        return redirect('admin_dashboard')
+    return redirect('login')
+
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('admin/', admin_redirect, name='django_admin_redirect'),
     path('health/', health_check, name='health_check'),
     path('accounts/', include('accounts.urls')),
     path('clients/', include('tenants.urls')),

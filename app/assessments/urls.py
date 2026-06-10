@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (
     dashboard, create_assessment, assessment_detail,
-    risk_item_edit, risk_item_delete
+    risk_item_edit, risk_item_delete, risk_item_grid
 )
 from .template_views import (
     template_list, template_edit, template_builder,
@@ -19,6 +19,7 @@ urlpatterns = [
     path('', dashboard, name='dashboard'),
     path('assessments/create/', create_assessment, name='create_assessment'),
     path('assessments/<int:assessment_id>/', assessment_detail, name='assessment_detail'),
+    path('assessments/<int:assessment_id>/risk-items/grid/', risk_item_grid, name='risk_item_grid'),
     path('assessments/<int:assessment_id>/risk-items/add/', risk_item_edit, name='risk_item_add'),
     path('assessments/<int:assessment_id>/risk-items/<int:risk_item_id>/edit/', risk_item_edit, name='risk_item_edit'),
     path('assessments/<int:assessment_id>/risk-items/<int:risk_item_id>/delete/', risk_item_delete, name='risk_item_delete'),

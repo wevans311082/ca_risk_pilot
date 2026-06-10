@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}User Management - RiskPilot{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+    <div>
+        <h1 class="h3 mb-1">User Management</h1>
+        <p class="text-muted mb-0">Tenant-scoped users, roles, client mappings, account status, and MFA resets.</p>
+    </div>
+    <a href="{% url 'admin_user_create' %}" class="btn btn-rp-primary"><i class="bi bi-person-plus me-2"></i>Add User</a>
+</div>
+
+<div class="card card-rp">
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th>Client</th>
+                    <th>MFA</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for membership in memberships %}
+                <tr>
+                    <td>
+                        <div class="fw-semibold">{{ membership.user.email }}</div>
+                        <div class="text-muted small">{{ membership.user.first_name }} {{ membership.user.last_name }}</div>
+                    </td>
+                    <td><span class="badge bg-secondary">{{ membership.get_role_display }}</span></td>
+                    <td>{{ membership.client.name|default:"-" }}</td>
+                    <td>{% if membership.user.profile.mfa_enabled %}<span class="badge bg-success">Enabled</span>{% else %}<span class="badge bg-light text-dark">Off</span>{% endif %}</td>
+                    <td>{% if membership.user.is_active %}<span class="text-success">Active</span>{% else %}<span class="text-danger">Inactive</span>{% endif %}</td>
+                    <td class="text-end">
+                        <div class="btn-group btn-group-sm">
+                            <a class="btn btn-outline-secondary" href="{% url 'admin_user_edit' membership.user.id %}" title="Edit"><i class="bi bi-pencil"></i></a>
+                            <form method="post" action="{% url 'admin_user_reset_mfa' membership.user.id %}">
+                                {% csrf_token %}
+                                <button class="btn btn-outline-secondary rounded-0" type="submit" title="Reset MFA"><i class="bi bi-shield-lock"></i></button>
+                            </form>
+                            <form method="post" action="{% url 'admin_user_toggle_active' membership.user.id %}">
+                                {% csrf_token %}
+                                <button class="btn btn-outline-danger" type="submit" title="{% if membership.user.is_active %}Deactivate{% else %}Activate{% endif %}">
+                                    <i class="bi {% if membership.user.is_active %}bi-person-dash{% else %}bi-person-check{% endif %}"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="6" class="text-muted text-center py-4">No users have been added yet.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

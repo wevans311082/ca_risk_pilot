@@ -36,7 +36,7 @@
                         <label for="id_password" class="form-label font-weight-500">Password</label>
                         <div class="input-group">
                             <span class="input-group-text bg-white"><i class="bi bi-lock text-muted"></i></span>
-                            <input type="password" name="password" required id="id_password" class="form-control" placeholder="••••••••">
+                            <input type="password" name="password" required id="id_password" class="form-control" placeholder="Password">
                         </div>
                     </div>
                     
@@ -44,6 +44,11 @@
                         <button class="btn btn-rp-primary btn-lg" type="submit">
                             <i class="bi bi-box-arrow-in-right me-2"></i> Sign In
                         </button>
+                        {% if m365_sso_available %}
+                        <a class="btn btn-outline-secondary btn-lg" href="{% url 'm365_sso_start' %}{% if next %}?next={{ next|urlencode }}{% endif %}">
+                            <i class="bi bi-microsoft me-2"></i> Sign in with Microsoft
+                        </a>
+                        {% endif %}
                     </div>
                 </form>
             </div>

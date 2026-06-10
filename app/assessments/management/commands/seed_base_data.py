@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 
+from assessments.seed_templates import get_seed_templates
 from assessments.models import (
     AssessmentMethodology,
     AssessmentMethodologyVersion,
@@ -296,7 +297,7 @@ def seed_reference_data(tenant, stdout=None):
             for threat_name in threat_names:
                 Threat.objects.get_or_create(tenant=tenant, category=category, name=threat_name)
 
-        for template_data in TEMPLATES:
+        for template_data in get_seed_templates():
             template, created = AssessmentTemplate.objects.get_or_create(
                 tenant=tenant,
                 name=template_data["name"],
@@ -308,12 +309,19 @@ def seed_reference_data(tenant, stdout=None):
                 },
             )
             if not created:
-                continue
+                template.description = template_data["description"]
+                template.version = 1
+                template.state = "Published"
+                template.is_latest = True
+                template.save(update_fields=["description", "version", "state", "is_latest", "updated_at"])
+                TemplateSection.objects.filter(tenant=tenant, template=template).delete()
+                TemplateScoringRange.objects.filter(tenant=tenant, template=template).delete()
             for section_data in template_data["sections"]:
                 section = TemplateSection.objects.create(
                     tenant=tenant,
                     template=template,
                     name=section_data["name"],
+                    description=section_data.get("description", ""),
                     order=section_data["order"],
                 )
                 for question_data in section_data["questions"]:

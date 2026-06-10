@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Risk Grid - {{ assessment.name }} - RiskPilot{% endblock %}
+
+{% block extra_css %}
+<style>
+    .risk-grid-wrap {
+        overflow-x: auto;
+    }
+    .risk-grid {
+        min-width: 2200px;
+    }
+    .risk-grid th {
+        white-space: nowrap;
+        font-size: 0.78rem;
+        vertical-align: middle;
+    }
+    .risk-grid td {
+        vertical-align: top;
+    }
+    .risk-grid .form-control,
+    .risk-grid .form-select {
+        min-width: 150px;
+        font-size: 0.82rem;
+    }
+    .risk-grid textarea.form-control {
+        min-width: 240px;
+    }
+    .cia-cell {
+        min-width: 130px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Home</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'assessment_detail' assessment.id %}">Assessment</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Risk Grid</li>
+            </ol>
+        </nav>
+        <h1 class="h3 mb-1">Risk Assessment Grid</h1>
+        <p class="text-muted mb-0">{{ assessment.name }} | {{ assessment.client.name }}</p>
+    </div>
+    <a href="{% url 'assessment_detail' assessment.id %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-2"></i>Back</a>
+</div>
+
+<form method="post" class="card card-rp">
+    {% csrf_token %}
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="h5 mb-0">Register Rows</h2>
+            <div class="text-muted small">Edit existing rows and add new rows in the blank lines at the bottom.</div>
+        </div>
+        <button class="btn btn-rp-primary" type="submit"><i class="bi bi-save me-2"></i>Save Grid</button>
+    </div>
+    <div class="risk-grid-wrap">
+        <table class="table table-sm table-bordered risk-grid mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Ref</th>
+                    <th>Asset Affected</th>
+                    <th>Location</th>
+                    <th>Owner</th>
+                    <th>Threat</th>
+                    <th>Vulnerability</th>
+                    <th>Existing Controls</th>
+                    <th>CIA</th>
+                    <th>Frequency</th>
+                    <th>Probability</th>
+                    <th>Impact</th>
+                    <th>Proposed Controls</th>
+                    <th>Residual Frequency</th>
+                    <th>Residual Probability</th>
+                    <th>Residual Impact</th>
+                    <th>Action</th>
+                    <th>Responsibility</th>
+                    <th>Target Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in risk_items %}
+                    {% with row=forloop.counter treatment=item.treatment %}
+                    <tr>
+                        <td class="text-muted">
+                            {{ row }}
+                            <input type="hidden" name="risk_item_id_{{ row }}" value="{{ item.id }}">
+                        </td>
+                        <td><input class="form-control" name="asset_name_{{ row }}" value="{{ item.asset_name }}" required></td>
+                        <td><input class="form-control" name="asset_location_{{ row }}" value="{{ item.asset_location }}"></td>
+                        <td><input class="form-control" name="asset_owner_{{ row }}" value="{{ item.asset_owner }}"></td>
+                        <td>
+                            <select class="form-select" name="threat_{{ row }}" required>
+                                {% for threat in threats %}
+                                    <option value="{{ threat.id }}" {% if item.threat_id == threat.id %}selected{% endif %}>[{{ threat.category.name }}] {{ threat.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td><textarea class="form-control" name="vulnerability_{{ row }}" rows="2">{{ item.vulnerability }}</textarea></td>
+                        <td><textarea class="form-control" name="existing_controls_{{ row }}" rows="2">{{ item.existing_controls }}</textarea></td>
+                        <td class="cia-cell">
+                            <div class="form-check"><input class="form-check-input" type="checkbox" name="confidentiality_affected_{{ row }}" {% if item.confidentiality_affected %}checked{% endif %}> <label class="form-check-label">C</label></div>
+                            <div class="form-check"><input class="form-check-input" type="checkbox" name="integrity_affected_{{ row }}" {% if item.integrity_affected %}checked{% endif %}> <label class="form-check-label">I</label></div>
+                            <div class="form-check"><input class="form-check-input" type="checkbox" name="availability_affected_{{ row }}" {% if item.availability_affected %}checked{% endif %}> <label class="form-check-label">A</label></div>
+                        </td>
+                        <td>{% include "assessments/partials/criteria_select.html" with name_prefix="threat_frequency_" row=row criteria=freq_criteria selected_id=item.threat_frequency_id required=True %}</td>
+                        <td>{% include "assessments/partials/criteria_select.html" with name_prefix="vulnerability_probability_" row=row criteria=prob_criteria selected_id=item.vulnerability_probability_id required=True %}</td>
+                        <td>{% include "assessments/partials/criteria_select.html" with name_prefix="impact_severity_" row=row criteria=impact_criteria selected_id=item.impact_severity_id required=True %}</td>
+                        <td><textarea class="form-control" name="proposed_controls_{{ row }}" rows="2">{{ item.proposed_controls }}</textarea></td>
+                        <td>{% include "assessments/partials/criteria_select.html" with name_prefix="residual_threat_frequency_" row=row criteria=freq_criteria selected_id=item.residual_threat_frequency_id %}</td>
+                        <td>{% include "assessments/partials/criteria_select.html" with name_prefix="residual_vulnerability_probability_" row=row criteria=prob_criteria selected_id=item.residual_vulnerability_probability_id %}</td>
+                        <td>{% include "assessments/partials/criteria_select.html" with name_prefix="residual_impact_severity_" row=row criteria=impact_criteria selected_id=item.residual_impact_severity_id %}</td>
+                        <td><textarea class="form-control" name="treatment_action_{{ row }}" rows="2">{{ treatment.action|default:'' }}</textarea></td>
+                        <td><input class="form-control" name="treatment_owner_{{ row }}" value="{{ treatment.owner|default:'' }}"></td>
+                        <td><input class="form-control" type="date" name="treatment_target_date_{{ row }}" value="{% if treatment.target_date %}{{ treatment.target_date|date:'Y-m-d' }}{% endif %}"></td>
+                        <td>
+                            <select class="form-select" name="treatment_status_{{ row }}">
+                                {% for status_code, status_label in treatment_statuses %}
+                                    <option value="{{ status_code }}" {% if treatment.status == status_code %}selected{% endif %}>{{ status_label }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                    </tr>
+                    {% endwith %}
+                {% endfor %}
+                {% for row in blank_rows %}
+                    <tr>
+                        <td class="text-muted">{{ row }}</td>
+                        <td><input class="form-control" name="asset_name_{{ row }}"></td>
+                        <td><input class="form-control" name="asset_location_{{ row }}"></td>
+                        <td><input class="form-control" name="asset_owner_{{ row }}"></td>
+                        <td>
+                            <select class="form-select" name="threat_{{ row }}">
+                                <option value="">-- Select --</option>
+                                {% for threat in threats %}
+                                    <option value="{{ threat.id }}">[{{ threat.category.name }}] {{ threat.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td><textarea class="form-control" name="vulnerability_{{ row }}" rows="2"></textarea></td>
+                        <td><textarea class="form-control" name="existing_controls_{{ row }}" rows="2"></textarea></td>
+                        <td class="cia-cell">
+                            <div class="form-check"><input class="form-check-input" type="checkbox" name="confidentiality_affected_{{ row }}"> <label class="form-check-label">C</label></div>
+                            <div class="form-check"><input class="form-check-input" type="checkbox" name="integrity_affected_{{ row }}"> <label class="form-check-label">I</label></div>
+                            <div class="form-check"><input class="form-check-input" type="checkbox" name="availability_affected_{{ row }}"> <label class="form-check-label">A</label></div>
+                        </td>
+                        <td>{% include "assessments/partials/criteria_select.html" with name_prefix="threat_frequency_" row=row criteria=freq_criteria %}</td>
+                        <td>{% include "assessments/partials/criteria_select.html" with name_prefix="vulnerability_probability_" row=row criteria=prob_criteria %}</td>
+                        <td>{% include "assessments/partials/criteria_select.html" with name_prefix="impact_severity_" row=row criteria=impact_criteria %}</td>
+                        <td><textarea class="form-control" name="proposed_controls_{{ row }}" rows="2"></textarea></td>
+                        <td>{% include "assessments/partials/criteria_select.html" with name_prefix="residual_threat_frequency_" row=row criteria=freq_criteria %}</td>
+                        <td>{% include "assessments/partials/criteria_select.html" with name_prefix="residual_vulnerability_probability_" row=row criteria=prob_criteria %}</td>
+                        <td>{% include "assessments/partials/criteria_select.html" with name_prefix="residual_impact_severity_" row=row criteria=impact_criteria %}</td>
+                        <td><textarea class="form-control" name="treatment_action_{{ row }}" rows="2"></textarea></td>
+                        <td><input class="form-control" name="treatment_owner_{{ row }}"></td>
+                        <td><input class="form-control" type="date" name="treatment_target_date_{{ row }}"></td>
+                        <td>
+                            <select class="form-select" name="treatment_status_{{ row }}">
+                                {% for status_code, status_label in treatment_statuses %}
+                                    <option value="{{ status_code }}">{{ status_label }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer bg-white d-flex justify-content-end gap-2">
+        <a href="{% url 'assessment_detail' assessment.id %}" class="btn btn-outline-secondary">Cancel</a>
+        <button class="btn btn-rp-primary" type="submit"><i class="bi bi-save me-2"></i>Save Grid</button>
+    </div>
+</form>
+{% endblock %}

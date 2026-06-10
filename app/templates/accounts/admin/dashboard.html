@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Console - RiskPilot{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+    <div>
+        <h1 class="h3 mb-1">Admin Console</h1>
+        <p class="text-muted mb-0">Manage users, MFA resets, and Microsoft sign-in for {{ active_tenant.name }}.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'admin_user_create' %}" class="btn btn-rp-primary"><i class="bi bi-person-plus me-2"></i>Add User</a>
+        <a href="{% url 'admin_sso_settings' %}" class="btn btn-outline-secondary"><i class="bi bi-microsoft me-2"></i>SSO Settings</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-rp h-100"><div class="card-body">
+            <div class="text-muted small">Users</div>
+            <div class="display-6 fw-semibold">{{ user_count }}</div>
+            <div class="small text-success">{{ active_user_count }} active</div>
+        </div></div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-rp h-100"><div class="card-body">
+            <div class="text-muted small">Clients</div>
+            <div class="display-6 fw-semibold">{{ client_count }}</div>
+            <a href="{% url 'client_list' %}" class="small text-decoration-none">Manage clients</a>
+        </div></div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-rp h-100"><div class="card-body">
+            <div class="text-muted small">MFA Enabled</div>
+            <div class="display-6 fw-semibold">{{ mfa_enabled_count }}</div>
+            <div class="small text-muted">TOTP-protected users</div>
+        </div></div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-rp h-100"><div class="card-body">
+            <div class="text-muted small">Microsoft SSO</div>
+            <div class="h4 fw-semibold mb-1">{% if sso_configured %}Enabled{% else %}Off{% endif %}</div>
+            <a href="{% url 'admin_sso_settings' %}" class="small text-decoration-none">Configure sign-in</a>
+        </div></div>
+    </div>
+</div>
+
+<div class="card card-rp">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h2 class="h5 mb-0">Recent Members</h2>
+        <a href="{% url 'admin_user_list' %}" class="btn btn-sm btn-outline-secondary">View all</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead><tr><th>User</th><th>Role</th><th>Client</th><th>Status</th></tr></thead>
+            <tbody>
+            {% for membership in recent_memberships %}
+                <tr>
+                    <td>{{ membership.user.email }}</td>
+                    <td><span class="badge bg-secondary">{{ membership.get_role_display }}</span></td>
+                    <td>{{ membership.client.name|default:"-" }}</td>
+                    <td>{% if membership.user.is_active %}<span class="text-success">Active</span>{% else %}<span class="text-danger">Inactive</span>{% endif %}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="4" class="text-muted text-center py-4">No users have been added yet.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

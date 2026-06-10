@@ -2,6 +2,16 @@ from django.db import models
 from django.utils import timezone
 from .isolation import get_current_tenant
 
+TENANT_ROLE_CHOICES = [
+    ('owner', 'Owner'),
+    ('admin', 'Administrator'),
+    ('assessor', 'Assessor'),
+    ('reviewer', 'Reviewer'),
+    ('client', 'Client'),
+    ('viewer', 'Viewer'),
+]
+
+
 class Tenant(models.Model):
     """
     SaaS Tenant representing a customer organization.
@@ -24,6 +34,11 @@ class Tenant(models.Model):
     
     # Microsoft 365 Entra ID tenant validation mapping
     microsoft_tenant_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
+    m365_sso_enabled = models.BooleanField(default=False)
+    m365_client_id = models.CharField(max_length=255, blank=True)
+    m365_client_secret = models.CharField(max_length=255, blank=True)
+    m365_auto_create_users = models.BooleanField(default=False)
+    m365_default_role = models.CharField(max_length=50, choices=TENANT_ROLE_CHOICES, default='viewer')
     
     # Outbound email isolation settings
     mail_service_type = models.CharField(max_length=50, choices=MAIL_SERVICE_CHOICES, default='GLOBAL')
@@ -50,14 +65,7 @@ class UserTenantMembership(models.Model):
     """
     Maps users to tenants with specific roles for logical RBAC isolation.
     """
-    ROLE_CHOICES = [
-        ('owner', 'Owner'),
-        ('admin', 'Administrator'),
-        ('assessor', 'Assessor'),
-        ('reviewer', 'Reviewer'),
-        ('client', 'Client'),
-        ('viewer', 'Viewer'),
-    ]
+    ROLE_CHOICES = TENANT_ROLE_CHOICES
 
     user = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='memberships')
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='memberships')
