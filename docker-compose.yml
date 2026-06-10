@@ -15,6 +15,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - riskpilot_net
 
   redis:
     image: redis:7-alpine
@@ -26,6 +28,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - riskpilot_net
 
   clamav:
     image: clamav/clamav:latest
@@ -33,12 +37,13 @@ services:
     ports:
       - "3310:3310"
     healthcheck:
-      # clamdscan /dev/null tests if the daemon is up and responsive to requests
       test: ["CMD-SHELL", "clamdscan /dev/null"]
       interval: 10s
       timeout: 10s
       retries: 15
       start_period: 45s
+    networks:
+      - riskpilot_net
 
   web:
     build:
@@ -57,8 +62,13 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CLAMAV_HOST=clamav
+      - WAIT_FOR_DB=True
     env_file:
       - .env
+    links:
+      - db:db
+      - redis:redis
+      - clamav:clamav
     depends_on:
       db:
         condition: service_healthy
@@ -71,6 +81,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+    networks:
+      - riskpilot_net
 
   migration:
     build:
@@ -82,11 +94,16 @@ services:
       - ./app:/app
     environment:
       - DB_HOST=db
+      - WAIT_FOR_DB=True
     env_file:
       - .env
+    links:
+      - db:db
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - riskpilot_net
 
   celery_worker:
     build:
@@ -102,8 +119,13 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CLAMAV_HOST=clamav
+      - WAIT_FOR_DB=True
     env_file:
       - .env
+    links:
+      - db:db
+      - redis:redis
+      - clamav:clamav
     depends_on:
       db:
         condition: service_healthy
@@ -116,6 +138,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    networks:
+      - riskpilot_net
 
   celery_beat:
     build:
@@ -128,8 +152,12 @@ services:
     environment:
       - DB_HOST=db
       - REDIS_URL=redis://redis:6379/0
+      - WAIT_FOR_DB=True
     env_file:
       - .env
+    links:
+      - db:db
+      - redis:redis
     depends_on:
       db:
         condition: service_healthy
@@ -140,6 +168,8 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+    networks:
+      - riskpilot_net
 
   nginx:
     image: nginx:1.27-alpine
@@ -158,8 +188,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+    networks:
+      - riskpilot_net
 
 volumes:
   postgres_data:
   staticfiles:
   mediafiles:
+
+networks:
+  riskpilot_net:
+    driver: bridge

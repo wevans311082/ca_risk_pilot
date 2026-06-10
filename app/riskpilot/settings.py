@@ -224,3 +224,51 @@ LOGGING = {
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_AGE = 1800  # 30 minutes in seconds
 SESSION_SAVE_EVERY_REQUEST = True
+
+# Startup Dependency Check (if enabled)
+if env.bool('WAIT_FOR_DB', default=False):
+    import socket
+    import time
+    import urllib.parse
+    
+    # 1. Check DB
+    db_host = env('DB_HOST', default='db')
+    db_port = env('DB_PORT', default='5432')
+    print(f"Waiting for database connection to {db_host}:{db_port}...")
+    connected = False
+    for attempt in range(1, 16):
+        try:
+            socket.getaddrinfo(db_host, int(db_port))
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(2)
+            s.connect((db_host, int(db_port)))
+            s.close()
+            connected = True
+            print("Database connection successfully established!")
+            break
+        except Exception as e:
+            print(f"Database not reachable yet (Attempt {attempt}/15): {e}")
+            time.sleep(3)
+            
+    # 2. Check Redis (if configured)
+    redis_url = env('REDIS_URL', default='')
+    if redis_url:
+        try:
+            parsed = urllib.parse.urlparse(redis_url)
+            redis_host = parsed.hostname or 'redis'
+            redis_port = parsed.port or 6379
+            print(f"Waiting for Redis connection to {redis_host}:{redis_port}...")
+            for attempt in range(1, 11):
+                try:
+                    socket.getaddrinfo(redis_host, int(redis_port))
+                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    s.settimeout(2)
+                    s.connect((redis_host, int(redis_port)))
+                    s.close()
+                    print("Redis connection successfully established!")
+                    break
+                except Exception as e:
+                    print(f"Redis not reachable yet (Attempt {attempt}/10): {e}")
+                    time.sleep(3)
+        except Exception as e:
+            print(f"Skipping Redis check due to parse error: {e}")
