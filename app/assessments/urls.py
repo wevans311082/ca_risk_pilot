@@ -1,13 +1,13 @@
 from django.urls import path
 from .views import (
     dashboard, create_assessment, assessment_detail,
-    risk_item_edit, risk_item_delete, risk_item_grid
+    risk_item_edit, risk_item_delete, risk_item_grid, risk_item_spreadsheet
 )
 from .template_views import (
     template_list, template_edit, template_builder,
     template_clone, template_create_version, template_publish, template_delete,
     template_assessment_list, template_assessment_create,
-    template_assessment_fill, template_assessment_complete
+    template_assessment_fill, template_assessment_complete, template_assessment_delete
 )
 
 from .views_central_risk import (
@@ -20,6 +20,7 @@ urlpatterns = [
     path('assessments/create/', create_assessment, name='create_assessment'),
     path('assessments/<int:assessment_id>/', assessment_detail, name='assessment_detail'),
     path('assessments/<int:assessment_id>/risk-items/grid/', risk_item_grid, name='risk_item_grid'),
+    path('assessments/<int:assessment_id>/risk-items/spreadsheet/', risk_item_spreadsheet, name='risk_item_spreadsheet'),
     path('assessments/<int:assessment_id>/risk-items/add/', risk_item_edit, name='risk_item_add'),
     path('assessments/<int:assessment_id>/risk-items/<int:risk_item_id>/edit/', risk_item_edit, name='risk_item_edit'),
     path('assessments/<int:assessment_id>/risk-items/<int:risk_item_id>/delete/', risk_item_delete, name='risk_item_delete'),
@@ -47,4 +48,5 @@ urlpatterns = [
     path('template-assessments/create/', template_assessment_create, name='template_assessment_create'),
     path('template-assessments/<int:assessment_id>/fill/<int:section_id>/', template_assessment_fill, name='template_assessment_fill'),
     path('template-assessments/<int:assessment_id>/complete/', template_assessment_complete, name='template_assessment_complete'),
+    path('template-assessments/<int:assessment_id>/delete/', template_assessment_delete, name='template_assessment_delete'),
 ]

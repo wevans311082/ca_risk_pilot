@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block title %}Spreadsheet Risk Assessment - {{ assessment.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .sheet-shell {
+        border: 1px solid #d7dee8;
+        background: #ffffff;
+        overflow: auto;
+        max-height: calc(100vh - 230px);
+    }
+    .sheet-table {
+        min-width: 3600px;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 0.78rem;
+    }
+    .sheet-table th {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        background: #eef3f8;
+        color: #243447;
+        border: 1px solid #cfd8e3;
+        padding: 0.45rem;
+        text-align: center;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+    .sheet-table td {
+        border: 1px solid #dfe6ef;
+        background: #fff;
+        padding: 0;
+        vertical-align: top;
+    }
+    .sheet-table .group {
+        background: #dbe8f6;
+        font-weight: 700;
+    }
+    .sheet-table .group-residual {
+        background: #e2f3e8;
+    }
+    .sheet-table .ref-cell,
+    .sheet-table .sticky-ref {
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        background: #f8fafc;
+        min-width: 48px;
+        text-align: center;
+        font-weight: 700;
+    }
+    .sheet-table th.sticky-ref {
+        z-index: 4;
+        background: #dbe8f6;
+    }
+    .sheet-input,
+    .sheet-select,
+    .sheet-textarea {
+        width: 100%;
+        min-width: 130px;
+        border: 0;
+        padding: 0.45rem;
+        background: transparent;
+        font-size: 0.78rem;
+    }
+    .sheet-textarea {
+        min-width: 230px;
+        resize: vertical;
+        min-height: 54px;
+    }
+    .sheet-select {
+        min-width: 150px;
+    }
+    .calc-cell {
+        min-width: 90px;
+        padding: 0.45rem;
+        background: #f8fafc;
+        text-align: center;
+        font-weight: 700;
+    }
+    .cia-mini {
+        min-width: 86px;
+        padding: 0.35rem;
+        display: flex;
+        gap: 0.35rem;
+        justify-content: center;
+    }
+    .risk-low { color: #146c43; background: #d1e7dd; }
+    .risk-medium { color: #8a5a00; background: #fff3cd; }
+    .risk-high { color: #842029; background: #f8d7da; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Home</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'assessment_detail' assessment.id %}">Assessment</a></li>
+                <li class="breadcrumb-item active">Spreadsheet</li>
+            </ol>
+        </nav>
+        <h1 class="h3 mb-1">Change Risk Assessment Spreadsheet</h1>
+        <p class="text-muted mb-0">Change Ref: <strong>{{ assessment.change_request|default:"Not set" }}</strong> | {{ assessment.client.name }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'risk_item_grid' assessment.id %}" class="btn btn-outline-secondary"><i class="bi bi-table me-2"></i>Compact Grid</a>
+        <a href="{% url 'assessment_detail' assessment.id %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-2"></i>Back</a>
+    </div>
+</div>
+
+<form method="post" id="spreadsheetForm">
+    {% csrf_token %}
+    <div class="card card-rp mb-3">
+        <div class="card-body py-3">
+            <div class="row g-3">
+                <div class="col-md-3"><span class="text-muted small d-block">Asset</span><strong>{{ assessment.asset|default:"-" }}</strong></div>
+                <div class="col-md-3"><span class="text-muted small d-block">Location</span><strong>{{ assessment.location|default:"-" }}</strong></div>
+                <div class="col-md-3"><span class="text-muted small d-block">Owner</span><strong>{{ assessment.owner|default:"-" }}</strong></div>
+                <div class="col-md-3 text-md-end"><button class="btn btn-rp-primary" type="submit"><i class="bi bi-save me-2"></i>Save Spreadsheet</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sheet-shell shadow-sm">
+        <table class="sheet-table">
+            <thead>
+                <tr>
+                    <th class="sticky-ref" rowspan="2">Ref</th>
+                    <th class="group" colspan="8">CHANGE RISK ASSESSMENT</th>
+                    <th class="group" colspan="5">EVENT LIKELIHOOD</th>
+                    <th class="group" colspan="4">IMPACT</th>
+                    <th class="group" colspan="2">RISK RATING</th>
+                    <th class="group-residual" colspan="6">RECALCULATED RISK AFTER ACTIONS</th>
+                    <th class="group" colspan="4">ACTIONS</th>
+                </tr>
+                <tr>
+                    <th>Asset Affected</th>
+                    <th>Location</th>
+                    <th>Owner</th>
+                    <th>Threat</th>
+                    <th>Vulnerability</th>
+                    <th>Existing Controls</th>
+                    <th>Key Processes / Notes</th>
+                    <th>CIA</th>
+                    <th>Frequency</th>
+                    <th>Freq Score</th>
+                    <th>Probability</th>
+                    <th>Prob Score</th>
+                    <th>Likelihood</th>
+                    <th>Severity</th>
+                    <th>Impact Score</th>
+                    <th>Impact Notes</th>
+                    <th>Risk Score</th>
+                    <th>Category</th>
+                    <th>Residual Frequency</th>
+                    <th>Residual Probability</th>
+                    <th>Residual Severity</th>
+                    <th>Residual Score</th>
+                    <th>Residual Category</th>
+                    <th>Residual Notes</th>
+                    <th>Additional Controls Required</th>
+                    <th>Responsibility</th>
+                    <th>Required Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in risk_items %}
+                    {% include "assessments/partials/spreadsheet_row.html" with row=forloop.counter item=item %}
+                {% endfor %}
+                {% for row in blank_rows %}
+                    {% include "assessments/partials/spreadsheet_row.html" with row=row %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <a href="{% url 'assessment_detail' assessment.id %}" class="btn btn-outline-secondary">Cancel</a>
+        <button class="btn btn-rp-primary" type="submit"><i class="bi bi-save me-2"></i>Save Spreadsheet</button>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function selectedScore(select) {
+        const option = select.options[select.selectedIndex];
+        const score = option ? parseFloat(option.dataset.score || '') : NaN;
+        return Number.isFinite(score) ? score : null;
+    }
+
+    function likelihoodLabel(score) {
+        if (!score) return '';
+        if (score === 1) return 'V Low';
+        if (score === 2) return 'Low';
+        if (score === 3) return 'Medium';
+        if (score === 6) return 'V High';
+        return 'High';
+    }
+
+    function riskCategory(score) {
+        if (!score) return '';
+        if (score < 5) return 'Low';
+        if (score > 15) return 'High';
+        return 'Medium';
+    }
+
+    function setRiskClass(el, category) {
+        el.classList.remove('risk-low', 'risk-medium', 'risk-high');
+        if (category === 'Low') el.classList.add('risk-low');
+        if (category === 'Medium') el.classList.add('risk-medium');
+        if (category === 'High') el.classList.add('risk-high');
+    }
+
+    function recalcRow(row) {
+        const freq = selectedScore(row.querySelector('[name^="threat_frequency_"]'));
+        const prob = selectedScore(row.querySelector('[name^="vulnerability_probability_"]'));
+        const impact = selectedScore(row.querySelector('[name^="impact_severity_"]'));
+        const likelihood = freq && prob ? freq + prob : null;
+        const risk = likelihood && impact ? likelihood * impact : null;
+
+        row.querySelector('[data-calc="freq"]').textContent = freq || '';
+        row.querySelector('[data-calc="prob"]').textContent = prob || '';
+        row.querySelector('[data-calc="likelihood"]').textContent = likelihood ? likelihoodLabel(likelihood) + ' (' + likelihood + ')' : '';
+        row.querySelector('[data-calc="impact"]').textContent = impact || '';
+        row.querySelector('[data-calc="risk"]').textContent = risk || '';
+        const cat = riskCategory(risk);
+        const catEl = row.querySelector('[data-calc="category"]');
+        catEl.textContent = cat;
+        setRiskClass(catEl, cat);
+
+        const resFreq = selectedScore(row.querySelector('[name^="residual_threat_frequency_"]'));
+        const resProb = selectedScore(row.querySelector('[name^="residual_vulnerability_probability_"]'));
+        const resImpact = selectedScore(row.querySelector('[name^="residual_impact_severity_"]'));
+        const resLikelihood = resFreq && resProb ? resFreq + resProb : null;
+        const resRisk = resLikelihood && resImpact ? resLikelihood * resImpact : null;
+        row.querySelector('[data-calc="residual-risk"]').textContent = resRisk || '';
+        const resCat = riskCategory(resRisk);
+        const resCatEl = row.querySelector('[data-calc="residual-category"]');
+        resCatEl.textContent = resCat;
+        setRiskClass(resCatEl, resCat);
+    }
+
+    document.querySelectorAll('tr[data-row]').forEach(function(row) {
+        row.querySelectorAll('select').forEach(function(select) {
+            select.addEventListener('change', function() { recalcRow(row); });
+        });
+        recalcRow(row);
+    });
+
+    document.getElementById('spreadsheetForm').addEventListener('submit', function() {
+        document.querySelectorAll('tr[data-row]').forEach(function(row) {
+            const source = row.querySelector('.action-source');
+            const target = row.querySelector('.treatment-action-target');
+            if (source && target) target.value = source.value;
+        });
+    });
+</script>
+{% endblock %}

@@ -347,8 +347,11 @@
             <div class="card-header-rp d-flex align-items-center justify-content-between">
                 <span><i class="bi bi-list-stars me-2 text-primary"></i> Risk Register (Items)</span>
                 <div class="d-flex gap-2">
+                    <a href="{% url 'risk_item_spreadsheet' assessment.id %}" class="btn btn-light btn-sm">
+                        <i class="bi bi-file-spreadsheet me-1"></i> Spreadsheet
+                    </a>
                     <a href="{% url 'risk_item_grid' assessment.id %}" class="btn btn-outline-light btn-sm">
-                        <i class="bi bi-table me-1"></i> Grid Entry
+                        <i class="bi bi-table me-1"></i> Compact Grid
                     </a>
                     <a href="{% url 'risk_item_add' assessment.id %}" class="btn btn-rp-primary btn-sm">
                         <i class="bi bi-plus-lg me-1"></i> Add Risk Item

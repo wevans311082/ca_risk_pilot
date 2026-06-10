@@ -1,0 +1,54 @@
+<tr data-row="{{ row }}">
+    <td class="ref-cell">
+        {{ row }}
+        {% if item %}<input type="hidden" name="risk_item_id_{{ row }}" value="{{ item.id }}">{% endif %}
+    </td>
+    <td><input class="sheet-input" name="asset_name_{{ row }}" value="{{ item.asset_name|default:'' }}"></td>
+    <td><input class="sheet-input" name="asset_location_{{ row }}" value="{{ item.asset_location|default:'' }}"></td>
+    <td><input class="sheet-input" name="asset_owner_{{ row }}" value="{{ item.asset_owner|default:'' }}"></td>
+    <td>
+        <select class="sheet-select" name="threat_{{ row }}">
+            <option value="">--</option>
+            {% for threat in threats %}
+                <option value="{{ threat.id }}" {% if item.threat_id == threat.id %}selected{% endif %}>{{ threat.category.name }} - {{ threat.name }}</option>
+            {% endfor %}
+        </select>
+    </td>
+    <td><textarea class="sheet-textarea" name="vulnerability_{{ row }}">{{ item.vulnerability|default:'' }}</textarea></td>
+    <td><textarea class="sheet-textarea" name="existing_controls_{{ row }}">{{ item.existing_controls|default:'' }}</textarea></td>
+    <td><textarea class="sheet-textarea" name="additional_mitigations_{{ row }}">{{ item.additional_mitigations|default:'' }}</textarea></td>
+    <td>
+        <div class="cia-mini">
+            <label><input type="checkbox" name="confidentiality_affected_{{ row }}" {% if item.confidentiality_affected %}checked{% endif %}> C</label>
+            <label><input type="checkbox" name="integrity_affected_{{ row }}" {% if item.integrity_affected %}checked{% endif %}> I</label>
+            <label><input type="checkbox" name="availability_affected_{{ row }}" {% if item.availability_affected %}checked{% endif %}> A</label>
+        </div>
+    </td>
+    <td>{% include "assessments/partials/spreadsheet_criteria_select.html" with name_prefix="threat_frequency_" row=row criteria=freq_criteria selected_id=item.threat_frequency_id %}</td>
+    <td><div class="calc-cell" data-calc="freq"></div></td>
+    <td>{% include "assessments/partials/spreadsheet_criteria_select.html" with name_prefix="vulnerability_probability_" row=row criteria=prob_criteria selected_id=item.vulnerability_probability_id %}</td>
+    <td><div class="calc-cell" data-calc="prob"></div></td>
+    <td><div class="calc-cell" data-calc="likelihood"></div></td>
+    <td>{% include "assessments/partials/spreadsheet_criteria_select.html" with name_prefix="impact_severity_" row=row criteria=impact_criteria selected_id=item.impact_severity_id %}</td>
+    <td><div class="calc-cell" data-calc="impact"></div></td>
+    <td><textarea class="sheet-textarea" name="impact_notes_{{ row }}">{{ item.business_process_impact|default:'' }}</textarea></td>
+    <td><div class="calc-cell" data-calc="risk"></div></td>
+    <td><div class="calc-cell" data-calc="category"></div></td>
+    <td>{% include "assessments/partials/spreadsheet_criteria_select.html" with name_prefix="residual_threat_frequency_" row=row criteria=freq_criteria selected_id=item.residual_threat_frequency_id %}</td>
+    <td>{% include "assessments/partials/spreadsheet_criteria_select.html" with name_prefix="residual_vulnerability_probability_" row=row criteria=prob_criteria selected_id=item.residual_vulnerability_probability_id %}</td>
+    <td>{% include "assessments/partials/spreadsheet_criteria_select.html" with name_prefix="residual_impact_severity_" row=row criteria=impact_criteria selected_id=item.residual_impact_severity_id %}</td>
+    <td><div class="calc-cell" data-calc="residual-risk"></div></td>
+    <td><div class="calc-cell" data-calc="residual-category"></div></td>
+    <td><textarea class="sheet-textarea" name="residual_notes_{{ row }}">{{ item.proposed_controls|default:'' }}</textarea></td>
+    <td><textarea class="sheet-textarea action-source" name="proposed_controls_{{ row }}">{% if item.proposed_controls %}{{ item.proposed_controls }}{% elif item.treatment.action %}{{ item.treatment.action }}{% endif %}</textarea></td>
+    <td><input class="sheet-input" name="treatment_owner_{{ row }}" value="{{ item.treatment.owner|default:'' }}"></td>
+    <td><input class="sheet-input" type="date" name="treatment_target_date_{{ row }}" value="{% if item.treatment.target_date %}{{ item.treatment.target_date|date:'Y-m-d' }}{% endif %}"></td>
+    <td>
+        <select class="sheet-select" name="treatment_status_{{ row }}">
+            {% for status_code, status_label in treatment_statuses %}
+                <option value="{{ status_code }}" {% if item.treatment.status == status_code %}selected{% endif %}>{{ status_label }}</option>
+            {% endfor %}
+        </select>
+        <input type="hidden" class="treatment-action-target" name="treatment_action_{{ row }}" value="{% if item.treatment.action %}{{ item.treatment.action }}{% elif item.proposed_controls %}{{ item.proposed_controls }}{% endif %}">
+    </td>
+</tr>

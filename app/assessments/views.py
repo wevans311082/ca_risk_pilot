@@ -533,6 +533,47 @@ def risk_item_grid(request, assessment_id):
         'active_tenant': tenant,
     })
 
+
+@login_required
+def risk_item_spreadsheet(request, assessment_id):
+    """
+    Workbook-style view of the change risk assessment spreadsheet.
+    """
+    if request.method == 'POST':
+        return risk_item_grid(request, assessment_id)
+
+    tenant = getattr(request, 'tenant', None)
+    if not tenant:
+        messages.error(request, "No active tenant association found.")
+        return redirect('login')
+
+    user_role = getattr(request, 'user_role', None)
+    if user_role == 'client':
+        messages.error(request, "Permission denied. Client users cannot bulk edit risk items.")
+        return redirect('dashboard')
+
+    assessment = get_object_or_404(Assessment, id=assessment_id, tenant=tenant)
+    version = assessment.methodology_version
+    risk_items = list(assessment.risk_items.all().select_related(
+        'threat', 'threat__category', 'threat_frequency', 'vulnerability_probability',
+        'impact_severity', 'residual_threat_frequency', 'residual_vulnerability_probability',
+        'residual_impact_severity',
+    ).prefetch_related('treatment'))
+    blank_rows = range(len(risk_items) + 1, len(risk_items) + 11)
+
+    return render(request, 'assessments/risk_item_spreadsheet.html', {
+        'assessment': assessment,
+        'risk_items': risk_items,
+        'blank_rows': blank_rows,
+        'threats': Threat.objects.filter(tenant=tenant).select_related('category').order_by('category__name', 'name'),
+        'freq_criteria': ThreatFrequencyCriteria.objects.filter(methodology_version=version, tenant=tenant),
+        'prob_criteria': VulnerabilityProbabilityCriteria.objects.filter(methodology_version=version, tenant=tenant),
+        'impact_criteria': ImpactCriteria.objects.filter(methodology_version=version, tenant=tenant),
+        'treatment_statuses': RiskTreatment.STATUS_CHOICES,
+        'active_tenant': tenant,
+    })
+
+
 @login_required
 @transaction.atomic
 def risk_item_edit(request, assessment_id, risk_item_id=None):

@@ -399,6 +399,36 @@ def template_assessment_list(request):
         'user_role': user_role
     })
 
+
+@login_required
+def template_assessment_delete(request, assessment_id):
+    tenant = request.tenant
+    user_role = getattr(request, 'user_role', None)
+    if user_role == 'client':
+        messages.error(request, "Permission denied. Client users cannot delete questionnaire runs.")
+        return redirect('template_assessment_list')
+
+    assessment = get_object_or_404(TemplateAssessment, id=assessment_id, tenant=tenant)
+    if request.method != 'POST':
+        messages.error(request, "Invalid delete request.")
+        return redirect('template_assessment_list')
+
+    assessment_name = assessment.name
+    assessment.delete()
+    log_audit_event(
+        tenant=tenant,
+        user=request.user,
+        event_type='ASSESSMENT',
+        action='DELETE',
+        payload={
+            'template_assessment_id': assessment_id,
+            'name': assessment_name,
+        },
+        ip_address=request.META.get('REMOTE_ADDR')
+    )
+    messages.success(request, f"Questionnaire run '{assessment_name}' was deleted.")
+    return redirect('template_assessment_list')
+
 @login_required
 def template_assessment_create(request):
     tenant = request.tenant

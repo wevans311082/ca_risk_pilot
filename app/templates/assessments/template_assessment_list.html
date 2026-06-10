@@ -78,9 +78,10 @@
                             {% endif %}
                         </td>
                         <td class="text-end pe-4">
+                            <div class="btn-group btn-group-sm">
                             {% if ass.status != 'Completed' %}
                                 {% if ass.template.sections.first %}
-                                <a href="{% url 'template_assessment_fill' assessment_id=ass.id section_id=ass.template.sections.first.id %}" class="btn btn-sm btn-rp-primary">
+                                <a href="{% url 'template_assessment_fill' assessment_id=ass.id section_id=ass.template.sections.first.id %}" class="btn btn-rp-primary">
                                     <i class="bi bi-pencil-fill me-1"></i> Fill
                                 </a>
                                 {% else %}
@@ -88,11 +89,20 @@
                                 {% endif %}
                             {% else %}
                                 {% if ass.template.sections.first %}
-                                <a href="{% url 'template_assessment_fill' assessment_id=ass.id section_id=ass.template.sections.first.id %}" class="btn btn-sm btn-outline-secondary">
+                                <a href="{% url 'template_assessment_fill' assessment_id=ass.id section_id=ass.template.sections.first.id %}" class="btn btn-outline-secondary">
                                     <i class="bi bi-eye-fill me-1"></i> View Answers
                                 </a>
                                 {% endif %}
                             {% endif %}
+                            {% if user_role != 'client' %}
+                                <form method="post" action="{% url 'template_assessment_delete' ass.id %}" class="d-inline" onsubmit="return confirm('Delete this questionnaire run and its answers?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-danger" title="Delete questionnaire run">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}

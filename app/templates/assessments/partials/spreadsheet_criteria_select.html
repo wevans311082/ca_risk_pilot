@@ -1,0 +1,8 @@
+<select class="sheet-select score-source" name="{{ name_prefix }}{{ row }}" {% if required %}required{% endif %}>
+    <option value="" data-score="">--</option>
+    {% for crit in criteria %}
+        <option value="{{ crit.id }}" data-score="{{ crit.score }}" {% if selected_id == crit.id %}selected{% endif %}>
+            {{ crit.label }}
+        </option>
+    {% endfor %}
+</select>
