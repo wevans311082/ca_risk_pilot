@@ -75,7 +75,7 @@ services:
       redis:
         condition: service_healthy
       clamav:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
       interval: 10s
@@ -132,7 +132,7 @@ services:
       redis:
         condition: service_healthy
       clamav:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "celery -A riskpilot inspect ping"]
       interval: 30s
