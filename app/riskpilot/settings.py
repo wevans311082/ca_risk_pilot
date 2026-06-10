@@ -103,7 +103,7 @@ ASGI_APPLICATION = 'riskpilot.asgi.application'
 DATABASES = {
     'default': env.db(
         'DATABASE_URL',
-        default='postgres://postgres:postgres_dev_password_123@db:5432/riskpilot'
+        default=f"postgres://{env('DB_USER', default='postgres')}:{env('DB_PASSWORD', default='postgres_dev_password_123')}@{env('DB_HOST', default='db')}:{env('DB_PORT', default='5432')}/{env('DB_NAME', default='riskpilot')}"
     )
 }
 
