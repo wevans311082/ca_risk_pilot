@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Create Assessment - RiskPilot{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none">Home</a></li>
+                <li class="breadcrumb-item active" aria-current="page">New Assessment</li>
+            </ol>
+        </nav>
+        <h1 class="h2 mb-0"><i class="bi bi-file-earmark-plus me-2 text-primary" style="color: var(--rp-blue-primary) !important;"></i>Create Risk Assessment</h1>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card card-rp shadow-sm mb-5">
+            <div class="card-header-rp">
+                <i class="bi bi-gear-fill me-2 text-primary"></i> Assessment Settings & Structure
+            </div>
+            <div class="card-body p-4">
+                <form method="post" action="{% url 'create_assessment' %}">
+                    {% csrf_token %}
+                    
+                    <!-- Core Parameters Section -->
+                    <h5 class="border-bottom pb-2 mb-3"><i class="bi bi-info-circle text-primary me-2"></i>Core Parameters</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="assessment_name" class="form-label fw-semibold">Assessment Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" id="assessment_name" required class="form-control" placeholder="e.g. 2026 Core Infrastructure Assessment">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="client_select" class="form-label fw-semibold">Client / Organization <span class="text-danger">*</span></label>
+                            <select name="client" id="client_select" required class="form-select">
+                                <option value="" disabled selected>-- Select a Client --</option>
+                                {% for client in clients %}
+                                    <option value="{{ client.id }}">{{ client.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="methodology_select" class="form-label fw-semibold">Methodology Version <span class="text-danger">*</span></label>
+                            <select name="methodology_version" id="methodology_select" required class="form-select">
+                                <option value="" disabled selected>-- Select Versioned Rules --</option>
+                                {% for m in methodologies %}
+                                    <option value="{{ m.id }}">{{ m.methodology.name }} (v{{ m.version_number }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="change_request" class="form-label fw-semibold">Change Reference / Code</label>
+                            <input type="text" name="change_request" id="change_request" class="form-control" placeholder="e.g. CR-4091">
+                        </div>
+                    </div>
+                    
+                    <!-- Main Asset Scope Section -->
+                    <h5 class="border-bottom pb-2 mb-3"><i class="bi bi-hdd-network text-primary me-2"></i>Main Asset Scope</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label for="asset" class="form-label fw-semibold">Asset Name</label>
+                            <input type="text" name="asset" id="asset" class="form-control" placeholder="e.g. Database server">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="location" class="form-label fw-semibold">Location</label>
+                            <input type="text" name="location" id="location" class="form-control" placeholder="e.g. AWS Dublin Region">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="owner" class="form-label fw-semibold">Asset Owner</label>
+                            <input type="text" name="owner" id="owner" class="form-control" placeholder="e.g. Chief Info Security Officer">
+                        </div>
+                    </div>
+
+                    <!-- Inherent Context Section -->
+                    <h5 class="border-bottom pb-2 mb-3"><i class="bi bi-shield-exclamation text-primary me-2"></i>Inherent Context</h5>
+                    <div class="mb-3">
+                        <label for="vulnerability" class="form-label fw-semibold">Vulnerability Detail</label>
+                        <textarea name="vulnerability" id="vulnerability" class="form-control" rows="2" placeholder="Describe core vulnerability..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="existing_controls" class="form-label fw-semibold">Existing Controls</label>
+                        <textarea name="existing_controls" id="existing_controls" class="form-control" rows="2" placeholder="List active baseline controls..."></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label for="business_process_impact" class="form-label fw-semibold">Business Process Impact</label>
+                        <textarea name="business_process_impact" id="business_process_impact" class="form-control" rows="2" placeholder="Describe impact to operations..."></textarea>
+                    </div>
+
+                    <!-- CIA checkmarks -->
+                    <h5 class="border-bottom pb-2 mb-3"><i class="bi bi-check-all text-primary me-2"></i>CIA Assessment</h5>
+                    <div class="mb-4">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" name="confidentiality_affected" id="c_affected" value="1">
+                            <label class="form-check-label fw-semibold" for="c_affected">Confidentiality Affected</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" name="integrity_affected" id="i_affected" value="1">
+                            <label class="form-check-label fw-semibold" for="i_affected">Integrity Affected</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" name="availability_affected" id="a_affected" value="1">
+                            <label class="form-check-label fw-semibold" for="a_affected">Availability Affected</label>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-3">
+                        <button type="submit" class="btn btn-rp-primary px-4 flex-grow-1">
+                            <i class="bi bi-check2-circle me-2"></i> Initialize Assessment Run
+                        </button>
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary px-4">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

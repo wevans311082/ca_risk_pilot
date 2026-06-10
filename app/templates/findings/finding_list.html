@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% load secure_links %}
+
+{% block title %}Findings Register - RiskPilot{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="h2"><i class="bi bi-exclamation-triangle text-primary me-2"></i>Findings Register</h1>
+        <p class="text-muted">Track compliance gaps, security vulnerabilities, recommendations, and remediation actions.</p>
+    </div>
+    <div class="col-md-4 text-md-end d-flex align-items-center justify-content-md-end">
+        <a href="{% url 'finding_create' %}" class="btn btn-rp-primary">
+            <i class="bi bi-plus-circle me-2"></i>Log New Finding
+        </a>
+    </div>
+</div>
+
+<!-- Findings List Card -->
+<div class="card card-rp shadow-sm">
+    <div class="card-header card-header-rp d-flex justify-content-between align-items-center">
+        <span>Active Findings</span>
+        <span class="badge bg-secondary">{{ findings.count }} Finding(s)</span>
+    </div>
+    <div class="card-body p-0">
+        {% if findings %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 40px;"></th>
+                            <th>Finding</th>
+                            <th>Severity</th>
+                            <th>Status</th>
+                            <th>Linked Assessment / Risk</th>
+                            <th>Assignee</th>
+                            <th>Due Date</th>
+                            <th class="text-end pe-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for finding in findings %}
+                            <tr>
+                                <td class="text-center">
+                                    <button class="btn btn-sm btn-link text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFinding{{ finding.id }}" aria-expanded="false" aria-controls="collapseFinding{{ finding.id }}">
+                                        <i class="bi bi-chevron-right toggle-icon"></i>
+                                    </button>
+                                </td>
+                                <td>
+                                    <strong>{{ finding.title }}</strong>
+                                    {% if finding.description %}
+                                        <div class="small text-muted text-truncate" style="max-width: 300px;" title="{{ finding.description }}">
+                                            {{ finding.description }}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if finding.severity == 'Critical' %}
+                                        <span class="badge bg-dark text-white"><i class="bi bi-fire me-1"></i>Critical</span>
+                                    {% elif finding.severity == 'High' %}
+                                        <span class="badge bg-rp-red"><i class="bi bi-exclamation-octagon me-1"></i>High</span>
+                                    {% elif finding.severity == 'Medium' %}
+                                        <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>Medium</span>
+                                    {% else %}
+                                        <span class="badge bg-info text-dark"><i class="bi bi-info-circle me-1"></i>Low</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if finding.status == 'Resolved' %}
+                                        <span class="badge bg-rp-success"><i class="bi bi-check-circle me-1"></i>Resolved</span>
+                                    {% elif finding.status == 'InProgress' %}
+                                        <span class="badge bg-primary"><i class="bi bi-gear-fill me-1"></i>In Progress</span>
+                                    {% elif finding.status == 'FalsePositive' %}
+                                        <span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>False Positive</span>
+                                    {% else %}
+                                        <span class="badge bg-outline-rp text-rp-primary border border-primary"><i class="bi bi-shield-exclamation me-1"></i>Open</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="small fw-semibold text-primary"><i class="bi bi-shield-check me-1"></i>{{ finding.assessment.name }}</div>
+                                    {% if finding.risk_item %}
+                                        <div class="small text-muted"><i class="bi bi-shield-exclamation me-1"></i>Risk Item: {{ finding.risk_item.asset_name }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if finding.assignee %}
+                                        <div class="small"><i class="bi bi-person-fill me-1"></i>{{ finding.assignee.email }}</div>
+                                    {% else %}
+                                        <span class="text-muted small">Unassigned</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if finding.due_date %}
+                                        <span class="small {% if finding.due_date < today and finding.status == 'Open' %}text-danger fw-bold{% endif %}">
+                                            <i class="bi bi-calendar-event me-1"></i>{{ finding.due_date|date:"Y-m-d" }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted small">None</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="d-inline-flex gap-2">
+                                        <a href="{% url 'finding_edit' finding.id %}" class="btn btn-sm btn-outline-primary" title="Edit Finding">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="{% url 'finding_delete' finding.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this finding?');" title="Delete Finding">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <!-- Collapsible Recommendation & Evidence Details Row -->
+                            <tr class="collapse" id="collapseFinding{{ finding.id }}">
+                                <td colspan="8" class="bg-light p-4">
+                                    <div class="row">
+                                        <!-- Recommendation details -->
+                                        <div class="col-md-7 mb-3 mb-md-0">
+                                            <div class="card card-rp h-100">
+                                                <div class="card-header card-header-rp bg-white py-2">
+                                                    <i class="bi bi-lightbulb-fill text-warning me-1"></i> Remediation Recommendation
+                                                </div>
+                                                <div class="card-body">
+                                                    {% if finding.recommendations.exists %}
+                                                        {% with rec=finding.recommendations.first %}
+                                                            <p class="mb-3" style="white-space: pre-wrap;">{{ rec.text }}</p>
+                                                            <div class="row g-2 pt-2 border-top">
+                                                                <div class="col-6 col-sm-4">
+                                                                    <div class="small text-muted">Priority</div>
+                                                                    <span class="badge bg-secondary">{{ rec.priority }}</span>
+                                                                </div>
+                                                                <div class="col-6 col-sm-4">
+                                                                    <div class="small text-muted">Implementation Effort</div>
+                                                                    <span class="badge bg-info text-dark">{{ rec.effort }}</span>
+                                                                </div>
+                                                                <div class="col-6 col-sm-4">
+                                                                    <div class="small text-muted">Cost Estimate</div>
+                                                                    <span class="fw-semibold text-success">
+                                                                        {% if rec.cost_estimate %}
+                                                                            £{{ rec.cost_estimate|floatformat:2 }}
+                                                                        {% else %}
+                                                                            £0.00
+                                                                        {% endif %}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        {% endwith %}
+                                                    {% else %}
+                                                        <p class="text-muted mb-0">No recommendation has been defined for this finding yet.</p>
+                                                        <a href="{% url 'finding_edit' finding.id %}" class="btn btn-sm btn-outline-primary mt-3">
+                                                            <i class="bi bi-plus-circle me-1"></i>Add Recommendation
+                                                        </a>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Linked Evidence documents -->
+                                        <div class="col-md-5">
+                                            <div class="card card-rp h-100">
+                                                <div class="card-header card-header-rp bg-white py-2">
+                                                    <i class="bi bi-link-45deg me-1"></i> Linked Evidence Documents
+                                                </div>
+                                                <div class="card-body p-0">
+                                                    {% if finding.evidence.exists %}
+                                                        <ul class="list-group list-group-flush rounded">
+                                                            {% for doc in finding.evidence.all %}
+                                                                <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent py-2">
+                                                                    <div>
+                                                                        <i class="bi bi-file-earmark-text text-primary me-2"></i>
+                                                                        <span>{{ doc.name }}</span>
+                                                                    </div>
+                                                                    {% if doc.versions.exists %}
+                                                                        {% with latest_version=doc.versions.first %}
+                                                                            {% if latest_version.status == 'Clean' %}
+                                                                                <a href="{% secure_url 'download_file' latest_version.id %}" class="btn btn-xs btn-link p-0 text-rp-primary" title="Download">
+                                                                                    <i class="bi bi-download"></i>
+                                                                                </a>
+                                                                            {% else %}
+                                                                                <span class="badge bg-warning text-dark fs-8" title="Status: {{ latest_version.status }}"><i class="bi bi-lock-fill"></i></span>
+                                                                            {% endif %}
+                                                                        {% endwith %}
+                                                                    {% endif %}
+                                                                </li>
+                                                            {% endfor %}
+                                                        </ul>
+                                                    {% else %}
+                                                        <div class="p-3 text-muted">No evidence files linked to this finding.</div>
+                                                        <div class="p-3 pt-0">
+                                                            <a href="{% url 'finding_edit' finding.id %}" class="btn btn-sm btn-outline-secondary">
+                                                                <i class="bi bi-link-45deg me-1"></i>Link Evidence
+                                                            </a>
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-exclamation-triangle text-muted fs-1 mb-3 d-block"></i>
+                <h5>No Findings Logged</h5>
+                <p class="text-muted">You have no active findings recorded in this tenant.</p>
+                <a href="{% url 'finding_create' %}" class="btn btn-rp-primary btn-sm mt-2">
+                    <i class="bi bi-plus-circle me-1"></i>Log Finding
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Add bootstrap collapse chevron rotate animations
+    document.addEventListener('DOMContentLoaded', function() {
+        const collapses = document.querySelectorAll('.collapse');
+        collapses.forEach(el => {
+            el.addEventListener('show.bs.collapse', function() {
+                const btn = document.querySelector(`[data-bs-target="#${this.id}"]`);
+                if (btn) {
+                    btn.querySelector('.toggle-icon').classList.replace('bi-chevron-right', 'bi-chevron-down');
+                }
+            });
+            el.addEventListener('hide.bs.collapse', function() {
+                const btn = document.querySelector(`[data-bs-target="#${this.id}"]`);
+                if (btn) {
+                    btn.querySelector('.toggle-icon').classList.replace('bi-chevron-down', 'bi-chevron-right');
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

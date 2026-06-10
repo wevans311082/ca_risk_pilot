@@ -1,0 +1,7 @@
+-r base.txt
+
+django-debug-toolbar>=4.4.6
+black>=24.8.0
+flake8>=7.1.1
+pytest-django>=4.9.0
+pytest>=8.3.2

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Accept Residual Risk: {{ risk.asset_name }} - RiskPilot{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none">Home</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'central_risk_list' %}" class="text-decoration-none">Central Risk Register</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'central_risk_detail' risk.id %}" class="text-decoration-none">Risk Details</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Accept Risk</li>
+            </ol>
+        </nav>
+        <h1 class="h2 mb-0">
+            <i class="bi bi-check-circle-fill text-info me-2"></i>
+            Accept Residual Risk: {{ risk.asset_name }}
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mb-4">
+        <div class="card card-rp shadow-sm mb-4 border-top border-info border-3">
+            <div class="card-header-rp"><i class="bi bi-shield-lock-fill text-info me-2"></i> Risk Acceptance Details</div>
+            <div class="card-body p-4">
+                <form method="post" action="">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="acceptance_rationale" class="form-label fw-semibold">Acceptance Rationale / Justification <span class="text-danger">*</span></label>
+                        <textarea name="acceptance_rationale" id="acceptance_rationale" required class="form-control" rows="6" placeholder="Provide a detailed business justification for accepting this risk. Describe compensating controls, financial trade-offs, or external factors that make this level of residual risk acceptable to the organization..."></textarea>
+                    </div>
+                    
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="acceptance_expiry" class="form-label fw-semibold">Acceptance Expiration Date <span class="text-danger">*</span></label>
+                            <input type="date" name="acceptance_expiry" id="acceptance_expiry" required class="form-control" value="{{ default_expiry }}">
+                            <small class="text-muted d-block mt-1">Acceptance approvals must be reviewed periodically. The standard duration is 1 year.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-info text-dark fw-semibold"><i class="bi bi-check-lg me-1"></i> Approve Risk Acceptance</button>
+                        <a href="{% url 'central_risk_detail' risk.id %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 mb-4">
+        <!-- Summary Context Card -->
+        <div class="card card-rp shadow-sm">
+            <div class="card-header-rp"><i class="bi bi-info-circle me-2"></i> Current Risk Posture</div>
+            <div class="card-body p-4">
+                <div class="mb-3">
+                    <span class="text-muted fs-8 d-block text-uppercase fw-semibold">Asset / Title</span>
+                    <strong class="text-dark">{{ risk.asset_name }}</strong>
+                </div>
+                <div class="mb-3">
+                    <span class="text-muted fs-8 d-block text-uppercase fw-semibold">Client / Organization</span>
+                    <span class="text-dark">{{ risk.client.name }}</span>
+                </div>
+                <div class="mb-3">
+                    <span class="text-muted fs-8 d-block text-uppercase fw-semibold">Inherent Risk Score</span>
+                    <span class="badge {% if risk.risk_category == 'Critical' or risk.risk_category == 'High' %}bg-danger{% elif risk.risk_category == 'Medium' %}bg-warning text-dark{% else %}bg-rp-success{% endif %} px-2.5 py-1.5 fs-8 mt-1">
+                        {{ risk.risk_category }} (Score: {{ risk.risk_score }})
+                    </span>
+                </div>
+                {% if risk.residual_risk_score is not None %}
+                <div class="mb-3">
+                    <span class="text-muted fs-8 d-block text-uppercase fw-semibold">Residual Risk Score</span>
+                    <span class="badge {% if risk.residual_risk_category == 'Critical' or risk.residual_risk_category == 'High' %}bg-danger{% elif risk.residual_risk_category == 'Medium' %}bg-warning text-dark{% else %}bg-rp-success{% endif %} px-2.5 py-1.5 fs-8 mt-1">
+                        {{ risk.residual_risk_category }} (Score: {{ risk.residual_risk_score }})
+                    </span>
+                </div>
+                {% endif %}
+                <div class="border-top pt-3 mt-3 bg-light p-3 rounded text-muted fs-8">
+                    <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+                    <strong>Important:</strong> Accepting a risk changes its status to <strong>Accepted</strong> and logs this approval, along with your user signature, in the risk history ledger.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

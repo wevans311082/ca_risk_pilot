@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}Asset Register - RiskPilot{% endblock %}
+
+{% block extra_css %}
+<style>
+    .asset-header {
+        background: linear-gradient(135deg, var(--rp-blue-primary), #0a4095);
+        color: #ffffff;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 50, 150, 0.15);
+        border-bottom: 4px solid var(--rp-red-accent);
+    }
+    .asset-header h1 {
+        color: #ffffff;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    .metric-card {
+        border-radius: 10px;
+        border: none;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+        transition: transform 0.2s ease;
+    }
+    .metric-card:hover {
+        transform: translateY(-2px);
+    }
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+    .metric-label {
+        font-size: 0.75rem;
+        text-uppercase: uppercase;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+    .fs-7 {
+        font-size: 0.825rem !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="asset-header mb-4">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <span class="badge bg-white text-dark opacity-75 mb-2 px-2.5 py-1 text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 0.5px;">Asset & System Register</span>
+            <h1>Asset Register</h1>
+            <p class="mb-0 opacity-85">Central directory to catalog systems, hardware, software, data resources, and critical business functions.</p>
+        </div>
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            {% if user_role != 'client' %}
+                <a href="{% url 'assets:asset_add' %}" class="btn btn-outline-light px-4 py-2 shadow-sm fw-semibold">
+                    <i class="bi bi-plus-circle me-2"></i> Register New Asset
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Metrics Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="card metric-card border-start border-primary border-4 h-100 p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="metric-label text-primary">Total Assets</div>
+                    <div class="metric-value text-dark">{{ total_count }}</div>
+                </div>
+                <div class="fs-1 text-primary opacity-50"><i class="bi bi-box-seam"></i></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-6 col-lg-3">
+        <div class="card metric-card border-start border-danger border-4 h-100 p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="metric-label text-danger">Critical Assets</div>
+                    <div class="metric-value text-dark">{{ critical_count }}</div>
+                </div>
+                <div class="fs-1 text-danger opacity-50"><i class="bi bi-exclamation-octagon"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="card metric-card border-start border-warning border-4 h-100 p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="metric-label text-warning">High Criticality</div>
+                    <div class="metric-value text-dark">{{ high_count }}</div>
+                </div>
+                <div class="fs-1 text-warning opacity-50"><i class="bi bi-exclamation-triangle"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="card metric-card border-start border-success border-4 h-100 p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="metric-label text-success">Software / Hardware</div>
+                    <div class="metric-value text-dark">{{ software_count }} / {{ hardware_count }}</div>
+                </div>
+                <div class="fs-1 text-success opacity-50"><i class="bi bi-cpu"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Panel -->
+<div class="card card-rp shadow-sm p-3 mb-4">
+    <form method="GET" class="row g-3 align-items-end">
+        {% if user_role != 'client' %}
+        <div class="col-md-3">
+            <label for="client" class="form-label text-muted fs-7 fw-semibold">Client / Org</label>
+            <select name="client" id="client" class="form-select form-select-sm">
+                <option value="">-- All Clients --</option>
+                {% for cl in filter_clients %}
+                    <option value="{{ cl.id }}" {% if selected_client_id == cl.id|stringformat:"s" %}selected{% endif %}>{{ cl.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+
+        <div class="col-md-3">
+            <label for="owner" class="form-label text-muted fs-7 fw-semibold">Asset Owner</label>
+            <select name="owner" id="owner" class="form-select form-select-sm">
+                <option value="">-- All Owners --</option>
+                {% for u in filter_owners %}
+                    <option value="{{ u.id }}" {% if selected_owner_id == u.id|stringformat:"s" %}selected{% endif %}>{{ u.email }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <label for="criticality" class="form-label text-muted fs-7 fw-semibold">Criticality</label>
+            <select name="criticality" id="criticality" class="form-select form-select-sm">
+                <option value="">-- All --</option>
+                {% for val, lbl in criticality_choices %}
+                    <option value="{{ val }}" {% if selected_criticality == val %}selected{% endif %}>{{ lbl }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <label for="asset_type" class="form-label text-muted fs-7 fw-semibold">Asset Type</label>
+            <select name="asset_type" id="asset_type" class="form-select form-select-sm">
+                <option value="">-- All --</option>
+                {% for val, lbl in type_choices %}
+                    <option value="{{ val }}" {% if selected_type == val %}selected{% endif %}>{{ lbl }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-rp-primary btn-sm flex-grow-1"><i class="bi bi-funnel-fill"></i> Filter</button>
+            <a href="{% url 'assets:asset_list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-counterclockwise"></i></a>
+        </div>
+    </form>
+</div>
+
+<!-- Assets Directory -->
+<div class="card card-rp shadow-sm">
+    <div class="card-header-rp"><i class="bi bi-table me-2 text-primary"></i> Assets Directory</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 fs-7">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Asset Name</th>
+                        <th>Client / Org</th>
+                        <th>Type</th>
+                        <th>Criticality</th>
+                        <th>Classification</th>
+                        <th>Owner</th>
+                        <th>Location</th>
+                        <th>Business Function</th>
+                        <th class="pe-4 text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for asset in assets %}
+                        <tr>
+                            <td class="ps-4">
+                                <a href="{% url 'assets:asset_detail' asset.id %}" class="fw-semibold text-dark text-decoration-none">{{ asset.name }}</a>
+                            </td>
+                            <td>{{ asset.client.name }}</td>
+                            <td>{{ asset.get_asset_type_display }}</td>
+                            <td>
+                                <span class="badge {% if asset.criticality == 'Critical' %}bg-danger{% elif asset.criticality == 'High' %}bg-warning text-dark{% elif asset.criticality == 'Medium' %}bg-primary{% else %}bg-secondary{% endif %} px-2.5 py-1">
+                                    {{ asset.get_criticality_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border px-2 py-0.5">{{ asset.get_classification_display }}</span>
+                            </td>
+                            <td>{{ asset.owner.email|default:"Unassigned" }}</td>
+                            <td><span class="text-muted">{{ asset.location|default:"—" }}</span></td>
+                            <td>{{ asset.business_function|default:"—" }}</td>
+                            <td class="pe-4 text-end">
+                                <a href="{% url 'assets:asset_detail' asset.id %}" class="btn btn-outline-rp btn-sm px-2.5 py-0.5"><i class="bi bi-folder2-open"></i> Open</a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-5 text-muted">
+                                <i class="bi bi-box fs-1 d-block mb-2 opacity-50"></i>
+                                <h6>No registered assets found.</h6>
+                                <small>Adjust filters or register a new asset using the action button above.</small>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

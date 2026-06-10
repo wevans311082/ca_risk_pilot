@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}{% if template %}Edit Template - {{ template.name }}{% else %}Create Assessment Template{% endif %} - RiskPilot{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'template_list' %}">Templates</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{% if template %}Edit Details{% else %}Create Template{% endif %}</li>
+            </ol>
+        </nav>
+        <h1 class="h2">{% if template %}Edit Details: {{ template.name }}{% else %}Create Assessment Template{% endif %}</h1>
+        <p class="text-muted">Set template metadata and define the scoring ranges that assign compliance levels.</p>
+    </div>
+</div>
+
+<form method="POST" id="templateForm">
+    {% csrf_token %}
+    <div class="row g-4">
+        <!-- Left Column: Basic Details -->
+        <div class="col-lg-6">
+            <div class="card card-rp shadow-sm h-100">
+                <div class="card-header-rp">
+                    <i class="bi bi-info-circle text-primary me-2"></i> Template Information
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label fw-medium">Template Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ template.name|default:'' }}" required placeholder="e.g. Supplier Security Assessment">
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label fw-medium">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="5" placeholder="Specify the objective and target audience of this assessment template.">{{ template.description|default:'' }}</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Compliance Scoring Ranges -->
+        <div class="col-lg-6">
+            <div class="card card-rp shadow-sm h-100">
+                <div class="card-header-rp d-flex align-items-center justify-content-between">
+                    <span><i class="bi bi-bar-chart-steps text-primary me-2"></i> Scoring Ranges</span>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="addRangeBtn">
+                        <i class="bi bi-plus-lg"></i> Add Range
+                    </button>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">Define compliance labels mapped to total scoring thresholds. For choice questions, the score of the selected option is accumulated.</p>
+                    
+                    <div id="rangesContainer">
+                        {% if ranges %}
+                            {% for rng in ranges %}
+                            <div class="row g-2 mb-3 align-items-center range-row">
+                                <div class="col-md-4">
+                                    <input type="text" class="form-control form-control-sm" name="range_label" value="{{ rng.label }}" placeholder="Label (e.g. Pass)" required>
+                                </div>
+                                <div class="col-md-2.5">
+                                    <input type="number" step="any" class="form-control form-control-sm" name="range_min" value="{{ rng.min_score }}" placeholder="Min Score" required>
+                                </div>
+                                <div class="col-md-2.5">
+                                    <input type="number" step="any" class="form-control form-control-sm" name="range_max" value="{{ rng.max_score }}" placeholder="Max Score" required>
+                                </div>
+                                <div class="col-md-2.5">
+                                    <select class="form-select form-select-sm" name="range_color">
+                                        <option value="success" {% if rng.color == 'success' %}selected{% endif %}>Success (Green)</option>
+                                        <option value="warning" {% if rng.color == 'warning' %}selected{% endif %}>Warning (Orange)</option>
+                                        <option value="danger" {% if rng.color == 'danger' %}selected{% endif %}>Danger (Red)</option>
+                                        <option value="info" {% if rng.color == 'info' %}selected{% endif %}>Info (Blue)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-0.5 text-center">
+                                    <button type="button" class="btn btn-sm text-danger remove-range-btn" title="Remove Range">
+                                        <i class="bi bi-x-circle-fill"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <!-- Default standard range items if none exist -->
+                            <div class="row g-2 mb-3 align-items-center range-row">
+                                <div class="col-md-4">
+                                    <input type="text" class="form-control form-control-sm" name="range_label" value="Fail" placeholder="Label (e.g. Fail)" required>
+                                </div>
+                                <div class="col col-md-2.5">
+                                    <input type="number" step="any" class="form-control form-control-sm" name="range_min" value="0" placeholder="Min Score" required>
+                                </div>
+                                <div class="col col-md-2.5">
+                                    <input type="number" step="any" class="form-control form-control-sm" name="range_max" value="19.9" placeholder="Max Score" required>
+                                </div>
+                                <div class="col col-md-2.5">
+                                    <select class="form-select form-select-sm" name="range_color">
+                                        <option value="danger" selected>Danger (Red)</option>
+                                        <option value="warning">Warning (Orange)</option>
+                                        <option value="success">Success (Green)</option>
+                                        <option value="info">Info (Blue)</option>
+                                    </select>
+                                </div>
+                                <div class="col col-md-0.5 text-center">
+                                    <button type="button" class="btn btn-sm text-danger remove-range-btn">
+                                        <i class="bi bi-x-circle-fill"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="row g-2 mb-3 align-items-center range-row">
+                                <div class="col-md-4">
+                                    <input type="text" class="form-control form-control-sm" name="range_label" value="Pass" placeholder="Label" required>
+                                </div>
+                                <div class="col col-md-2.5">
+                                    <input type="number" step="any" class="form-control form-control-sm" name="range_min" value="20" placeholder="Min Score" required>
+                                </div>
+                                <div class="col col-md-2.5">
+                                    <input type="number" step="any" class="form-control form-control-sm" name="range_max" value="100" placeholder="Max Score" required>
+                                </div>
+                                <div class="col col-md-2.5">
+                                    <select class="form-select form-select-sm" name="range_color">
+                                        <option value="success" selected>Success (Green)</option>
+                                        <option value="warning">Warning (Orange)</option>
+                                        <option value="danger">Danger (Red)</option>
+                                        <option value="info">Info (Blue)</option>
+                                    </select>
+                                </div>
+                                <div class="col col-md-0.5 text-center">
+                                    <button type="button" class="btn btn-sm text-danger remove-range-btn">
+                                        <i class="bi bi-x-circle-fill"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions Footer -->
+    <div class="row mt-4">
+        <div class="col-12 text-end">
+            <a href="{% url 'template_list' %}" class="btn btn-light px-4 me-2">Cancel</a>
+            <button type="submit" class="btn btn-rp-primary px-4">Save Template Details</button>
+        </div>
+    </div>
+</form>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const container = document.getElementById("rangesContainer");
+        const addBtn = document.getElementById("addRangeBtn");
+
+        // Remove row event listener
+        container.addEventListener("click", function(e) {
+            if (e.target.closest(".remove-range-btn")) {
+                const row = e.target.closest(".range-row");
+                row.remove();
+            }
+        });
+
+        // Add row event listener
+        addBtn.addEventListener("click", function() {
+            const html = `
+            <div class="row g-2 mb-3 align-items-center range-row">
+                <div class="col-md-4">
+                    <input type="text" class="form-control form-control-sm" name="range_label" placeholder="Label" required>
+                </div>
+                <div class="col col-md-2.5">
+                    <input type="number" step="any" class="form-control form-control-sm" name="range_min" placeholder="Min" required>
+                </div>
+                <div class="col col-md-2.5">
+                    <input type="number" step="any" class="form-control form-control-sm" name="range_max" placeholder="Max" required>
+                </div>
+                <div class="col col-md-2.5">
+                    <select class="form-select form-select-sm" name="range_color">
+                        <option value="success">Success (Green)</option>
+                        <option value="warning">Warning (Orange)</option>
+                        <option value="danger">Danger (Red)</option>
+                        <option value="info">Info (Blue)</option>
+                    </select>
+                </div>
+                <div class="col col-md-0.5 text-center">
+                    <button type="button" class="btn btn-sm text-danger remove-range-btn">
+                        <i class="bi bi-x-circle-fill"></i>
+                    </button>
+                </div>
+            </div>`;
+            container.insertAdjacentHTML("beforeend", html);
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Record Risk Review: {{ risk.asset_name }} - RiskPilot{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none">Home</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'central_risk_list' %}" class="text-decoration-none">Central Risk Register</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'central_risk_detail' risk.id %}" class="text-decoration-none">Risk Details</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Record Review</li>
+            </ol>
+        </nav>
+        <h1 class="h2 mb-0">
+            <i class="bi bi-calendar-check text-warning me-2"></i>
+            Record Periodic Review: {{ risk.asset_name }}
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <form method="post" action="">
+            {% csrf_token %}
+            
+            <div class="row">
+                <!-- Left Column: Review Notes & Status -->
+                <div class="col-lg-8 mb-4">
+                    <div class="card card-rp shadow-sm mb-4">
+                        <div class="card-header-rp"><i class="bi bi-card-text text-primary me-2"></i> Review Documentation</div>
+                        <div class="card-body p-4">
+                            <div class="mb-3">
+                                <label for="review_notes" class="form-label fw-semibold">Review Notes <span class="text-danger">*</span></label>
+                                <textarea name="review_notes" id="review_notes" required class="form-control" rows="5" placeholder="Document the findings, effectiveness of controls, or reasons for any scoring changes during this review..."></textarea>
+                            </div>
+                            
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="next_review_date" class="form-label fw-semibold">Next Scheduled Review <span class="text-danger">*</span></label>
+                                    <input type="date" name="next_review_date" id="next_review_date" required class="form-control" value="{{ default_next_review }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="status_select" class="form-label fw-semibold">Updated Lifecycle Status</label>
+                                    <select name="status" id="status_select" class="form-select">
+                                        {% for s_val, s_label in status_choices %}
+                                            <option value="{{ s_val }}" {% if risk.status == s_val %}selected{% endif %}>{{ s_label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card card-rp shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted fs-7"><i class="bi bi-info-circle me-1"></i> Recording a review will update the last reviewed timestamp and reset the review schedule.</span>
+                                <div class="d-flex gap-2">
+                                    <a href="{% url 'central_risk_detail' risk.id %}" class="btn btn-outline-secondary">Cancel</a>
+                                    <button type="submit" class="btn btn-warning text-dark fw-semibold"><i class="bi bi-check-circle-fill me-2"></i> Submit Review</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Optional Scoring Adjustments -->
+                <div class="col-lg-4 mb-4">
+                    <div class="card card-rp shadow-sm border-top border-warning border-3">
+                        <div class="card-header-rp fw-semibold">
+                            <i class="bi bi-bar-chart-fill text-warning me-2"></i> Adjust Inherent Scoring (Optional)
+                        </div>
+                        <div class="card-body p-4">
+                            <p class="text-muted fs-7 mb-4">Use these fields to adjust the inherent risk scores if the threat landscape or asset criticality has evolved.</p>
+                            
+                            <div class="mb-3">
+                                <label for="freq_select" class="form-label fw-semibold">Threat Frequency</label>
+                                <select name="threat_frequency" id="freq_select" class="form-select">
+                                    {% for crit in freq_criteria %}
+                                        <option value="{{ crit.id }}" {% if risk.threat_frequency_id == crit.id %}selected{% endif %}>
+                                            {{ crit.label }} (Score: {{ crit.score }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="prob_select" class="form-label fw-semibold">Vulnerability Probability</label>
+                                <select name="vulnerability_probability" id="prob_select" class="form-select">
+                                    {% for crit in prob_criteria %}
+                                        <option value="{{ crit.id }}" {% if risk.vulnerability_probability_id == crit.id %}selected{% endif %}>
+                                            {{ crit.label }} (Score: {{ crit.score }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="impact_select" class="form-label fw-semibold">Impact Severity</label>
+                                <select name="impact_severity" id="impact_select" class="form-select">
+                                    {% for crit in impact_criteria %}
+                                        <option value="{{ crit.id }}" {% if risk.impact_severity_id == crit.id %}selected{% endif %}>
+                                            {{ crit.label }} (Score: {{ crit.score }}) - {{ crit.financial_impact_range }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

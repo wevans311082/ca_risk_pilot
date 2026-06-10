@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block title %}Control Library - RiskPilot{% endblock %}
+
+{% block extra_css %}
+<style>
+    .control-header {
+        background: linear-gradient(135deg, var(--rp-blue-primary), #0a4095);
+        color: #ffffff;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 50, 150, 0.15);
+        border-bottom: 4px solid var(--rp-red-accent);
+    }
+    .control-header h1 {
+        color: #ffffff;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    .metric-card {
+        border-radius: 10px;
+        border: none;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+        transition: transform 0.2s ease;
+    }
+    .metric-card:hover {
+        transform: translateY(-2px);
+    }
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+    .metric-label {
+        font-size: 0.75rem;
+        text-uppercase: uppercase;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+    .fs-7 {
+        font-size: 0.825rem !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="control-header mb-4">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <span class="badge bg-white text-dark opacity-75 mb-2 px-2.5 py-1 text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 0.5px;">Control Catalog & testing</span>
+            <h1>Control Library</h1>
+            <p class="mb-0 opacity-85">Manage Administrative, Technical, and Physical security controls. Monitor maturity, effectiveness ratings, and track audit testing schedules.</p>
+        </div>
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            {% if user_role != 'client' %}
+                <a href="{% url 'controls:control_add' %}" class="btn btn-outline-light px-4 py-2 shadow-sm fw-semibold">
+                    <i class="bi bi-plus-circle me-2"></i> Register New Control
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Metrics Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="card metric-card border-start border-primary border-4 h-100 p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="metric-label text-primary">Total Controls</div>
+                    <div class="metric-value text-dark">{{ total_count }}</div>
+                </div>
+                <div class="fs-1 text-primary opacity-50"><i class="bi bi-sliders"></i></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-6 col-lg-3">
+        <div class="card metric-card border-start border-success border-4 h-100 p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="metric-label text-success">Admin / Tech / Physical</div>
+                    <div class="metric-value text-dark" style="font-size: 1.5rem; margin-top: 6px;">{{ admin_count }} / {{ tech_count }} / {{ physical_count }}</div>
+                </div>
+                <div class="fs-1 text-success opacity-50"><i class="bi bi-gear-wide-connected"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="card metric-card border-start border-danger border-4 h-100 p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="metric-label text-danger">Ineffective Controls</div>
+                    <div class="metric-value text-dark">{{ ineffective_count }}</div>
+                </div>
+                <div class="fs-1 text-danger opacity-50"><i class="bi bi-shield-x"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="card metric-card border-start border-info border-4 h-100 p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="metric-label text-info">Active Library</div>
+                    <div class="metric-value text-dark">100%</div>
+                </div>
+                <div class="fs-1 text-info opacity-50"><i class="bi bi-shield-check"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Panel -->
+<div class="card card-rp shadow-sm p-3 mb-4">
+    <form method="GET" class="row g-3 align-items-end">
+        {% if user_role != 'client' %}
+        <div class="col-md-3">
+            <label for="client" class="form-label text-muted fs-7 fw-semibold">Client / Org</label>
+            <select name="client" id="client" class="form-select form-select-sm">
+                <option value="">-- All Clients --</option>
+                {% for cl in filter_clients %}
+                    <option value="{{ cl.id }}" {% if selected_client_id == cl.id|stringformat:"s" %}selected{% endif %}>{{ cl.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+
+        <div class="col-md-3">
+            <label for="control_type" class="form-label text-muted fs-7 fw-semibold">Control Type</label>
+            <select name="control_type" id="control_type" class="form-select form-select-sm">
+                <option value="">-- All Types --</option>
+                {% for val, lbl in type_choices %}
+                    <option value="{{ val }}" {% if selected_type == val %}selected{% endif %}>{{ lbl }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <label for="effectiveness" class="form-label text-muted fs-7 fw-semibold">Effectiveness</label>
+            <select name="effectiveness" id="effectiveness" class="form-select form-select-sm">
+                <option value="">-- All --</option>
+                {% for val, lbl in effectiveness_choices %}
+                    <option value="{{ val }}" {% if selected_effectiveness == val %}selected{% endif %}>{{ lbl }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <label for="maturity" class="form-label text-muted fs-7 fw-semibold">Maturity Level</label>
+            <select name="maturity" id="maturity" class="form-select form-select-sm">
+                <option value="">-- All --</option>
+                {% for val, lbl in maturity_choices %}
+                    <option value="{{ val }}" {% if selected_maturity == val %}selected{% endif %}>{{ lbl }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-rp-primary btn-sm flex-grow-1"><i class="bi bi-funnel-fill"></i> Filter</button>
+            <a href="{% url 'controls:control_list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-counterclockwise"></i></a>
+        </div>
+    </form>
+</div>
+
+<!-- Controls Directory Table -->
+<div class="card card-rp shadow-sm">
+    <div class="card-header-rp"><i class="bi bi-table me-2 text-primary"></i> Control Catalog</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 fs-7">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Control Name</th>
+                        <th>Client / Org</th>
+                        <th>Type</th>
+                        <th>Effectiveness</th>
+                        <th>Maturity</th>
+                        <th>Last Tested</th>
+                        <th>Next Test</th>
+                        <th class="pe-4 text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in controls %}
+                        <tr>
+                            <td class="ps-4">
+                                <a href="{% url 'controls:control_detail' c.id %}" class="fw-semibold text-dark text-decoration-none">{{ c.name }}</a>
+                            </td>
+                            <td>{{ c.client.name }}</td>
+                            <td>{{ c.get_control_type_display }}</td>
+                            <td>
+                                <span class="badge {% if c.effectiveness == 'Satisfactory' %}bg-success{% elif c.effectiveness == 'NeedsImprovement' %}bg-warning text-dark{% elif c.effectiveness == 'Ineffective' %}bg-danger{% else %}bg-secondary{% endif %} px-2.5 py-1">
+                                    {{ c.get_effectiveness_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border px-2 py-0.5">{{ c.get_maturity_display }}</span>
+                            </td>
+                            <td><span class="text-muted">{{ c.last_tested_at|default:"Not tested" }}</span></td>
+                            <td>
+                                {% if c.next_test_date %}
+                                    <span class="{% if c.next_test_date < today %}text-danger fw-semibold{% endif %}">
+                                        {{ c.next_test_date }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="pe-4 text-end">
+                                <a href="{% url 'controls:control_detail' c.id %}" class="btn btn-outline-rp btn-sm px-2.5 py-0.5"><i class="bi bi-folder2-open"></i> Open</a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="bi bi-sliders fs-1 d-block mb-2 opacity-50"></i>
+                                <h6>No registered controls found.</h6>
+                                <small>Adjust filters or register a control using the action button above.</small>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

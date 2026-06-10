@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Start Questionnaire Run - RiskPilot{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'template_assessment_list' %}">Questionnaire Runs</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Start Run</li>
+            </ol>
+        </nav>
+        <h1 class="h2">Start Questionnaire Run</h1>
+        <p class="text-muted">Initialize a compliance questionnaire or vendor standard assessment for a client.</p>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card card-rp shadow-sm">
+            <div class="card-header-rp">
+                <i class="bi bi-file-earmark-plus text-primary me-2"></i> Questionnaire Details
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="name" class="form-label fw-medium">Assessment Run Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" required placeholder="e.g. Acme Co - Cyber Essentials 2026 Audit">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="client" class="form-label fw-medium">Client Organisation <span class="text-danger">*</span></label>
+                        <select class="form-select" id="client" name="client" required>
+                            <option value="" selected disabled>-- Select Client --</option>
+                            {% for c in clients %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="template" class="form-label fw-medium">Assessment Standard Template <span class="text-danger">*</span></label>
+                        <select class="form-select" id="template" name="template" required>
+                            <option value="" selected disabled>-- Select Standard Template --</option>
+                            {% for tpl in templates %}
+                            <option value="{{ tpl.id }}">{{ tpl.name }} (v{{ tpl.version }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'template_assessment_list' %}" class="btn btn-light px-4">Cancel</a>
+                        <button type="submit" class="btn btn-rp-primary px-4">Start Assessment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

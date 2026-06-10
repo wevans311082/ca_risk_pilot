@@ -1,0 +1,150 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: riskpilot_db
+    environment:
+      - POSTGRES_DB=riskpilot
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres_dev_password_123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d riskpilot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: riskpilot_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  clamav:
+    image: clamav/clamav:latest
+    container_name: riskpilot_clamav
+    ports:
+      - "3310:3310"
+    healthcheck:
+      # clamdscan /dev/null tests if the daemon is up and responsive to requests
+      test: ["CMD-SHELL", "clamdscan /dev/null"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 45s
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    container_name: riskpilot_web
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./app:/app
+      - staticfiles:/app/staticfiles
+      - mediafiles:/app/mediafiles
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clamav:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  migration:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    container_name: riskpilot_migration
+    command: python manage.py migrate --noinput
+    volumes:
+      - ./app:/app
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    container_name: riskpilot_celery_worker
+    command: celery -A riskpilot worker -l info
+    volumes:
+      - ./app:/app
+      - mediafiles:/app/mediafiles
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clamav:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A riskpilot inspect ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  celery_beat:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    container_name: riskpilot_celery_beat
+    command: celery -A riskpilot beat -l info
+    volumes:
+      - ./app:/app
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "ps aux | grep 'celery -A riskpilot beat' | grep -v grep || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: riskpilot_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx/dev.conf:/etc/nginx/conf.d/default.conf:ro
+      - staticfiles:/app/staticfiles:ro
+      - mediafiles:/app/mediafiles:ro
+    depends_on:
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nginx -t && wget --spider -q http://localhost/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  postgres_data:
+  staticfiles:
+  mediafiles:

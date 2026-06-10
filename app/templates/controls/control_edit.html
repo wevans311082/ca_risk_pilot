@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}{% if control %}Edit Control{% else %}Register New Control{% endif %} - RiskPilot{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none">Home</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'controls:control_list' %}" class="text-decoration-none">Control Library</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{% if control %}Edit{% else %}Register{% endif %} Control</li>
+            </ol>
+        </nav>
+        <h1 class="h2 mb-0">
+            <i class="bi bi-sliders text-primary me-2"></i>
+            {% if control %}Edit Control: {{ control.name }}{% else %}Register New Control{% endif %}
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <form method="post" action="">
+            {% csrf_token %}
+            
+            <div class="row">
+                <!-- Left Column: Control Settings -->
+                <div class="col-lg-8 mb-4">
+                    <div class="card card-rp shadow-sm mb-4">
+                        <div class="card-header-rp"><i class="bi bi-info-circle-fill text-primary me-2"></i> Control Parameters</div>
+                        <div class="card-body p-4">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label for="client_select" class="form-label fw-semibold">Client / Org <span class="text-danger">*</span></label>
+                                    <select name="client" id="client_select" required class="form-select">
+                                        <option value="" disabled {% if not control %}selected{% endif %}>-- Choose Client --</option>
+                                        {% for cl in clients %}
+                                            <option value="{{ cl.id }}" {% if control.client_id == cl.id %}selected{% endif %}>{{ cl.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="control_type" class="form-label fw-semibold">Control Type <span class="text-danger">*</span></label>
+                                    <select name="control_type" id="control_type" required class="form-select">
+                                        {% for val, lbl in type_choices %}
+                                            <option value="{{ val }}" {% if control.control_type == val %}selected{% endif %}>{{ lbl }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-12">
+                                    <label for="name" class="form-label fw-semibold">Control Name <span class="text-danger">*</span></label>
+                                    <input type="text" name="name" id="name" required class="form-control form-control-lg" placeholder="e.g. Mandatory Multi-Factor Authentication" value="{{ control.name|default:'' }}">
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="description" class="form-label fw-semibold">Control Text / Description</label>
+                                <textarea name="description" id="description" class="form-control" rows="5" placeholder="Detail the specific rules, guidelines, or software settings configuration that define this control...">{{ control.description|default:'' }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="card card-rp shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-rp-primary px-4"><i class="bi bi-floppy-fill me-2"></i> Save Control Entry</button>
+                                <a href="{% if control %}{% url 'controls:control_detail' control.id %}{% else %}{% url 'controls:control_list' %}{% endif %}" class="btn btn-outline-secondary">Cancel</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Effectiveness, Testing Dates & Linkages -->
+                <div class="col-lg-4 mb-4">
+                    <div class="card card-rp shadow-sm mb-4">
+                        <div class="card-header-rp"><i class="bi bi-shield-check text-primary me-2"></i> Testing & Effectiveness</div>
+                        <div class="card-body p-4">
+                            <div class="mb-3">
+                                <label for="effectiveness" class="form-label fw-semibold">Effectiveness <span class="text-danger">*</span></label>
+                                <select name="effectiveness" id="effectiveness" required class="form-select">
+                                    {% for val, lbl in effectiveness_choices %}
+                                        <option value="{{ val }}" {% if control.effectiveness == val %}selected{% endif %}>{{ lbl }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="maturity" class="form-label fw-semibold">Maturity Level <span class="text-danger">*</span></label>
+                                <select name="maturity" id="maturity" required class="form-select">
+                                    {% for val, lbl in maturity_choices %}
+                                        <option value="{{ val }}" {% if control.maturity == val %}selected{% endif %}>{{ lbl }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="last_tested_at" class="form-label fw-semibold">Last Tested Date</label>
+                                <input type="date" name="last_tested_at" id="last_tested_at" class="form-control" value="{% if control.last_tested_at %}{{ control.last_tested_at|date:'Y-m-d' }}{% endif %}">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="next_test_date" class="form-label fw-semibold">Next Scheduled Test</label>
+                                <input type="date" name="next_test_date" id="next_test_date" class="form-control" value="{% if control.next_test_date %}{{ control.next_test_date|date:'Y-m-d' }}{% endif %}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Many-to-Many Linkages -->
+                    <div class="card card-rp shadow-sm">
+                        <div class="card-header-rp"><i class="bi bi-link-45deg text-primary me-2"></i> Entity Linkages</div>
+                        <div class="card-body p-4">
+                            <p class="text-muted fs-7 mb-3">Hold <kbd class="bg-secondary text-white px-1 fs-8">Ctrl</kbd> or <kbd class="bg-secondary text-white px-1 fs-8">Cmd</kbd> to select multiple options.</p>
+
+                            <div class="mb-3">
+                                <label for="central_risks" class="form-label fw-semibold fs-7">Associate Central Risks</label>
+                                <select name="central_risks" id="central_risks" multiple class="form-select fs-7" style="height: 120px;">
+                                    {% for r in central_risks %}
+                                        <option value="{{ r.id }}" {% if r.id in linked_central_risk_ids %}selected{% endif %}>
+                                            {{ r.asset_name }} ({{ r.risk_category }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="assessment_risks" class="form-label fw-semibold fs-7">Associate Assessment Risk Items</label>
+                                <select name="assessment_risks" id="assessment_risks" multiple class="form-select fs-7" style="height: 120px;">
+                                    {% for ar in assessment_risks %}
+                                        <option value="{{ ar.id }}" {% if ar.id in linked_assessment_risk_ids %}selected{% endif %}>
+                                            [{{ ar.assessment.name }}] {{ ar.asset_name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="assessments" class="form-label fw-semibold fs-7">Associate Assessments</label>
+                                <select name="assessments" id="assessments" multiple class="form-select fs-7" style="height: 120px;">
+                                    {% for ass in assessments %}
+                                        <option value="{{ ass.id }}" {% if ass.id in linked_assessment_ids %}selected{% endif %}>
+                                            {{ ass.name }} ({{ ass.status }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="findings" class="form-label fw-semibold fs-7">Associate Findings</label>
+                                <select name="findings" id="findings" multiple class="form-select fs-7" style="height: 120px;">
+                                    {% for f in findings %}
+                                        <option value="{{ f.id }}" {% if f.id in linked_finding_ids %}selected{% endif %}>
+                                            {{ f.title }} ({{ f.severity }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="recommendations" class="form-label fw-semibold fs-7">Associate Recommendations</label>
+                                <select name="recommendations" id="recommendations" multiple class="form-select fs-7" style="height: 120px;">
+                                    {% for rec in recommendations %}
+                                        <option value="{{ rec.id }}" {% if rec.id in linked_recommendation_ids %}selected{% endif %}>
+                                            {{ rec.text }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

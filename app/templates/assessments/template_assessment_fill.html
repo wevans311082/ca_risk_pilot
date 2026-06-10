@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+
+{% block title %}Fill Assessment - {{ assessment.name }} - RiskPilot{% endblock %}
+
+{% block extra_css %}
+<style>
+    .section-nav-link {
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        font-weight: 500;
+        color: #495057;
+    }
+    .section-nav-link:hover {
+        background-color: rgba(0, 0, 0, 0.04);
+        color: var(--rp-blue-primary);
+    }
+    .section-nav-link.active {
+        background-color: var(--rp-blue-primary) !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 12px rgba(0, 51, 136, 0.15);
+    }
+    .question-card {
+        border: 1px solid #eef2f5;
+        border-radius: 8px;
+        background-color: #ffffff;
+        margin-bottom: 1.5rem;
+    }
+    .guidance-block {
+        border-left: 3px solid var(--rp-red-accent);
+        background-color: #fffaf9;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Welcome / Summary Banner -->
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'template_assessment_list' %}">Questionnaire Runs</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Fill Assessment</li>
+            </ol>
+        </nav>
+        
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div>
+                <h1 class="h3 mb-1 fw-bold">{{ assessment.name }}</h1>
+                <p class="text-muted mb-0">
+                    Standard: <span class="fw-semibold">{{ template.name }} (v{{ template.version }})</span> | 
+                    Client: <span class="fw-semibold">{{ assessment.client.name }}</span>
+                </p>
+            </div>
+            
+            <div>
+                {% if assessment.status == 'Completed' %}
+                <span class="badge bg-rp-success px-4 py-2 fs-6 shadow-sm">
+                    <i class="bi bi-shield-fill-check me-2"></i> Completed
+                </span>
+                {% else %}
+                <span class="badge bg-primary px-4 py-2 fs-6 shadow-sm">
+                    <i class="bi bi-pencil-fill me-2"></i> In Progress
+                </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if assessment.status == 'Completed' %}
+<!-- Completion Summary Info -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-white border-0 shadow-sm">
+            <div class="card-body p-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div>
+                    <h5 class="fw-bold mb-1"><i class="bi bi-award text-warning me-2 fs-4"></i> Compliance Evaluation Completed</h5>
+                    <p class="text-muted mb-0">This assessment run has been finalised and locked to preserve the historical audit trail.</p>
+                </div>
+                <div class="d-flex gap-4 text-center">
+                    <div>
+                        <div class="small text-muted text-uppercase mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Compliance Score</div>
+                        <div class="h3 mb-0 fw-bold font-monospace text-primary">{{ assessment.total_score }}</div>
+                    </div>
+                    <div>
+                        <div class="small text-muted text-uppercase mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Compliance Rating</div>
+                        <div class="h3 mb-0">
+                            <span class="badge bg-rp-blue px-3 py-1.5 fs-6 shadow-sm">{{ assessment.compliance_rating }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row g-4">
+    <!-- Left Navigation: Template Sections -->
+    <div class="col-lg-3">
+        <div class="card card-rp shadow-sm p-3 bg-white">
+            <h5 class="fw-semibold mb-3 pb-2 border-bottom" style="font-size: 0.95rem; letter-spacing: 0.5px;">ASSESSMENT SECTIONS</h5>
+            <div class="nav flex-column nav-pills">
+                {% for sec in sections %}
+                <a class="nav-link section-nav-link mb-2 p-2.5 d-flex align-items-center justify-content-between {% if sec.id == current_section.id %}active{% endif %}"
+                   href="{% if sec.id != current_section.id %}{% url 'template_assessment_fill' assessment_id=assessment.id section_id=sec.id %}{% else %}#{% endif %}">
+                    <span>
+                        <span class="badge bg-light text-dark border me-2">{{ forloop.counter }}</span>
+                        {{ sec.name }}
+                    </span>
+                    <i class="bi bi-chevron-right fs-8 opacity-50"></i>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- AI Diagnostics Panel -->
+        <div class="card card-rp shadow-sm p-3 bg-white mt-4 border-start border-primary border-3" style="border-left-color: var(--rp-blue-primary) !important;">
+            <h5 class="fw-semibold mb-2" style="font-size: 0.95rem; letter-spacing: 0.5px;"><i class="bi bi-robot text-primary me-2"></i>AI Review Tools</h5>
+            <p class="text-muted mb-3" style="font-size: 0.75rem;">Run automated cyber and compliance diagnostics on this assessment run.</p>
+            <div class="d-grid gap-2">
+                <button type="button" class="btn btn-outline-rp btn-sm text-start" id="btn-ai-completeness" style="font-size: 0.8rem;">
+                    <i class="bi bi-check2-square me-1"></i> Completeness Review
+                </button>
+                <button type="button" class="btn btn-outline-rp btn-sm text-start" id="btn-ai-contradiction" style="font-size: 0.8rem;">
+                    <i class="bi bi-exclamation-octagon me-1"></i> Detect Contradictions
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Workspace: Questionnaire Fields -->
+    <div class="col-lg-9">
+        <div class="card card-rp shadow-sm">
+            <div class="card-header-rp bg-white py-3 border-bottom">
+                <h3 class="h5 mb-1 text-primary">{{ current_section.name }}</h3>
+                {% if current_section.description %}
+                <p class="text-muted small mb-0">{{ current_section.description }}</p>
+                {% endif %}
+            </div>
+            
+            <div class="card-body bg-light py-4">
+                <form method="POST" id="fillForm">
+                    {% csrf_token %}
+                    
+                    {% if questions %}
+                        {% for q in questions %}
+                        <div class="card question-card shadow-xs">
+                            <div class="card-body p-4">
+                                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                                    <h5 class="card-title fw-bold h6 mb-0">
+                                        {{ q.text }}
+                                        {% if q.is_required %}
+                                        <span class="text-danger" title="Required field">*</span>
+                                        {% endif %}
+                                    </h5>
+                                </div>
+                                
+                                {% if q.help_text %}
+                                <p class="text-muted small mb-3"><i class="bi bi-info-circle me-1"></i> {{ q.help_text }}</p>
+                                {% endif %}
+
+                                {% if q.guidance_notes %}
+                                <div class="alert guidance-block p-3 mb-3 small">
+                                    <h6 class="fw-bold text-dark mb-1 small"><i class="bi bi-journal-text me-1 text-rp-red"></i> Compliance Guidance</h6>
+                                    {{ q.guidance_notes }}
+                                </div>
+                                {% endif %}
+
+                                <div class="input-container mt-3">
+                                    {% if q.question_type == 'Text' %}
+                                        <input type="text" class="form-control" name="answer_{{ q.id }}" value="{{ q.answer.text_value|default:'' }}" {% if assessment.status == 'Completed' %}disabled{% endif %}>
+                                        
+                                    {% elif q.question_type == 'LongText' %}
+                                        <textarea class="form-control" name="answer_{{ q.id }}" rows="3" {% if assessment.status == 'Completed' %}disabled{% endif %}>{{ q.answer.text_value|default:'' }}</textarea>
+                                        
+                                    {% elif q.question_type == 'Date' %}
+                                        <input type="date" class="form-control" name="answer_{{ q.id }}" value="{{ q.answer.text_value|default:'' }}" {% if assessment.status == 'Completed' %}disabled{% endif %}>
+                                        
+                                    {% elif q.question_type == 'Numeric' %}
+                                        <input type="number" step="any" class="form-control" name="answer_{{ q.id }}" value="{{ q.answer.text_value|default:'' }}" {% if assessment.status == 'Completed' %}disabled{% endif %}>
+                                        
+                                    {% elif q.question_type == 'Dropdown' %}
+                                        <select class="form-select" name="answer_{{ q.id }}" {% if assessment.status == 'Completed' %}disabled{% endif %}>
+                                            <option value="" selected>-- Select Answer Option --</option>
+                                            {% for choice in q.choices.all %}
+                                            <option value="{{ choice.id }}" {% if choice in q.answer.selected_choices.all %}selected{% endif %}>{{ choice.text }} (Score weight: {{ choice.score }})</option>
+                                            {% endfor %}
+                                        </select>
+                                        
+                                    {% elif q.question_type == 'Radio' %}
+                                        <div class="d-flex flex-column gap-2">
+                                            {% for choice in q.choices.all %}
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="answer_{{ q.id }}" id="choice_{{ choice.id }}" value="{{ choice.id }}" {% if choice in q.answer.selected_choices.all %}selected{% endif %} {% if choice in q.answer.selected_choices.all %}checked{% endif %} {% if assessment.status == 'Completed' %}disabled{% endif %}>
+                                                <label class="form-check-label" for="choice_{{ choice.id }}">{{ choice.text }}</label>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        
+                                    {% elif q.question_type == 'MultiSelect' %}
+                                        <div class="d-flex flex-column gap-2">
+                                            {% for choice in q.choices.all %}
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="answer_{{ q.id }}" id="choice_{{ choice.id }}" value="{{ choice.id }}" {% if choice in q.answer.selected_choices.all %}checked{% endif %} {% if assessment.status == 'Completed' %}disabled{% endif %}>
+                                                <label class="form-check-label" for="choice_{{ choice.id }}">{{ choice.text }}</label>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        
+                                    {% elif q.question_type == 'Evidence' %}
+                                        <select class="form-select" name="answer_{{ q.id }}" multiple rows="5" {% if assessment.status == 'Completed' %}disabled{% endif %}>
+                                            {% for doc in evidence_docs %}
+                                            <option value="{{ doc.id }}" {% if doc in q.answer.attached_evidence.all %}selected{% endif %}>{{ doc.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <p class="text-muted small mt-2 mb-0"><i class="bi bi-info-square me-1"></i> Hold Ctrl (Windows) or Cmd (Mac) to select multiple documents. Upload files to the <a href="{% url 'document_library' %}" target="_blank">Evidence Library</a>.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5 bg-white rounded">
+                            <i class="bi bi-clipboard-x text-muted display-4 mb-2 d-block"></i>
+                            <h5 class="text-muted">No questions defined in this section.</h5>
+                        </div>
+                    {% endif %}
+
+                    <!-- Footer Actions -->
+                    <div class="d-flex align-items-center justify-content-between mt-4 border-top pt-4 bg-transparent">
+                        <div>
+                            {% if prev_section %}
+                            <a href="{% url 'template_assessment_fill' assessment_id=assessment.id section_id=prev_section.id %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left-short me-1"></i> Previous Section
+                            </a>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            {% if assessment.status != 'Completed' %}
+                                <button type="submit" name="action" value="save" class="btn btn-light border">
+                                    <i class="bi bi-save me-1"></i> Save Progress
+                                </button>
+                                
+                                {% if next_section %}
+                                <input type="hidden" name="next_section_id" value="{{ next_section.id }}">
+                                <button type="submit" name="action" value="next" class="btn btn-rp-primary">
+                                    Save &amp; Continue <i class="bi bi-arrow-right-short ms-1"></i>
+                                </button>
+                                {% else %}
+                                <button type="submit" name="action" value="complete" class="btn btn-success btn-rp-success px-4" onclick="return confirm('Are you sure you want to finalise this compliance assessment? This will calculate the total score and lock it.');">
+                                    <i class="bi bi-lock-fill me-1"></i> Finalise Assessment
+                                </button>
+                                {% endif %}
+                            {% else %}
+                                {% if next_section %}
+                                <a href="{% url 'template_assessment_fill' assessment_id=assessment.id section_id=next_section.id %}" class="btn btn-rp-primary">
+                                    Next Section <i class="bi bi-arrow-right-short ms-1"></i>
+                                </a>
+                                {% endif %}
+                                <a href="{% url 'template_assessment_list' %}" class="btn btn-light border">Return to List</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- Comments Discussion -->
+        {% include 'collaboration/comments_thread.html' with entity_type='template_assessment' entity_id=assessment.id comments=comments %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnCompleteness = document.getElementById('btn-ai-completeness');
+        if (btnCompleteness) {
+            btnCompleteness.addEventListener('click', function() {
+                window.RiskPilotAI.generate({
+                    feature: 'completeness_review',
+                    params: { assessment_id: {{ assessment.id }} },
+                    applyLabel: 'Copy Review Details',
+                    onApply: function(text) {
+                        navigator.clipboard.writeText(text).then(function() {
+                            alert('Review details copied to clipboard!');
+                        });
+                    }
+                });
+            });
+        }
+
+        const btnContradiction = document.getElementById('btn-ai-contradiction');
+        if (btnContradiction) {
+            btnContradiction.addEventListener('click', function() {
+                window.RiskPilotAI.generate({
+                    feature: 'contradiction_detection',
+                    params: { assessment_id: {{ assessment.id }} },
+                    applyLabel: 'Copy Contradiction Details',
+                    onApply: function(text) {
+                        navigator.clipboard.writeText(text).then(function() {
+                            alert('Contradiction details copied to clipboard!');
+                        });
+                    }
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

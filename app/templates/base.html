@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}RiskPilot - Cyber Risk Assessment Platform{% endblock %}</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <!-- Custom theme variables and override styles -->
+    <style>
+        :root {
+            --rp-blue-primary: #003388;
+            --rp-blue-hover: #002266;
+            --rp-red-accent: #882211;
+            --rp-red-hover: #661100;
+            --rp-green-success: #02CA02;
+            --rp-gray-dark: #32373c;
+            --rp-gray-light: #f4f6f9;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--rp-gray-light);
+            color: #333333;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Navbar Customization */
+        .navbar-rp {
+            background-color: var(--rp-blue-primary) !important;
+            border-bottom: 3px solid var(--rp-red-accent);
+        }
+        .navbar-rp .navbar-brand {
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: #ffffff !important;
+        }
+        .navbar-rp .nav-link {
+            color: rgba(255, 255, 255, 0.85) !important;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+        .navbar-rp .nav-link:hover, .navbar-rp .nav-link.active {
+            color: #ffffff !important;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        /* Buttons Customization */
+        .btn-rp-primary {
+            background-color: var(--rp-blue-primary);
+            border-color: var(--rp-blue-primary);
+            color: #ffffff;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .btn-rp-primary:hover, .btn-rp-primary:focus {
+            background-color: var(--rp-blue-hover);
+            border-color: var(--rp-blue-hover);
+            color: #ffffff;
+        }
+        .btn-rp-secondary {
+            background-color: var(--rp-red-accent);
+            border-color: var(--rp-red-accent);
+            color: #ffffff;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .btn-rp-secondary:hover, .btn-rp-secondary:focus {
+            background-color: var(--rp-red-hover);
+            border-color: var(--rp-red-hover);
+            color: #ffffff;
+        }
+        .btn-outline-rp {
+            color: var(--rp-blue-primary);
+            border-color: var(--rp-blue-primary);
+            font-weight: 500;
+        }
+        .btn-outline-rp:hover {
+            background-color: var(--rp-blue-primary);
+            color: #ffffff;
+        }
+
+        /* Header Customization */
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--rp-gray-dark);
+            font-weight: 600;
+        }
+
+        /* Cards and Elements */
+        .card-rp {
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            background-color: #ffffff;
+        }
+        .card-header-rp {
+            background-color: #ffffff;
+            border-bottom: 2px solid var(--rp-gray-light);
+            font-weight: 600;
+            padding: 1rem 1.25rem;
+        }
+
+        /* Badges */
+        .bg-rp-success {
+            background-color: var(--rp-green-success) !important;
+            color: #ffffff !important;
+        }
+        .bg-rp-blue {
+            background-color: var(--rp-blue-primary) !important;
+            color: #ffffff !important;
+        }
+        .bg-rp-red {
+            background-color: var(--rp-red-accent) !important;
+            color: #ffffff !important;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: auto;
+            background-color: #ffffff;
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            padding: 1.5rem 0;
+            font-size: 0.9rem;
+            color: #777777;
+        }
+        
+        /* Alert message styles */
+        .alert-rp {
+            border-left: 4px solid var(--rp-blue-primary);
+            border-radius: 4px;
+        }
+        .alert-success.alert-rp {
+            border-left-color: var(--rp-green-success);
+        }
+        .alert-danger.alert-rp {
+            border-left-color: var(--rp-red-accent);
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-rp py-2 shadow-sm">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="{% url 'dashboard' %}">
+                <i class="bi bi-shield-check me-2 fs-3"></i>
+                <span>RiskPilot</span>
+            </a>
+            {% if user.is_authenticated %}
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-4">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">
+                            <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'risks' in request.path %}active{% endif %}" href="{% url 'central_risk_list' %}">
+                            <i class="bi bi-shield-shaded me-1"></i> Central Risk Register
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'assets' in request.path %}active{% endif %}" href="{% url 'assets:asset_list' %}">
+                            <i class="bi bi-box me-1"></i> Asset Register
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'controls' in request.path %}active{% endif %}" href="{% url 'controls:control_list' %}">
+                            <i class="bi bi-sliders me-1"></i> Control Library
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'client_list' %}active{% endif %}" href="{% url 'client_list' %}">
+                            <i class="bi bi-people me-1"></i> Clients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'evidence' in request.path and 'collaboration' not in request.path %}active{% endif %}" href="{% url 'document_library' %}">
+                            <i class="bi bi-folder2-open me-1"></i> Evidence Library
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'collaboration/requests' in request.path %}active{% endif %}" href="{% url 'evidence_requests_list' %}">
+                            <i class="bi bi-folder-check me-1"></i> Evidence Requests
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'findings' in request.path %}active{% endif %}" href="{% url 'finding_list' %}">
+                            <i class="bi bi-exclamation-triangle me-1"></i> Findings Register
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'reports' in request.path %}active{% endif %}" href="{% url 'reporting_center' %}">
+                            <i class="bi bi-file-earmark-bar-graph me-1"></i> Reports Center
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if 'template' in request.path %}active{% endif %}" href="#" id="assessmentsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-ui-checks me-1"></i> Dynamic Assessments
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="assessmentsDropdown">
+                            <li><a class="dropdown-item" href="{% url 'template_assessment_list' %}"><i class="bi bi-journal-check me-2"></i> Questionnaire Runs</a></li>
+                            <li><a class="dropdown-item" href="{% url 'template_list' %}"><i class="bi bi-gear-fill me-2"></i> Assessment Templates</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if 'ai' in request.path %}active{% endif %}" href="#" id="aiDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-robot me-1"></i> AI Assistant
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="aiDropdown">
+                            <li><a class="dropdown-item" href="{% url 'ai_history' %}"><i class="bi bi-journal-text me-2"></i> AI Audit History</a></li>
+                            <li><a class="dropdown-item" href="{% url 'ai_settings' %}"><i class="bi bi-sliders2 me-2"></i> AI Settings</a></li>
+                        </ul>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center text-white">
+                    {% if active_tenant %}
+                    <span class="badge bg-rp-red me-3 px-3 py-2 fs-7 shadow-sm">
+                        <i class="bi bi-building me-1"></i> {{ active_tenant.name }}
+                    </span>
+                    {% endif %}
+                    
+                    <!-- Notifications Bell Dropdown -->
+                    <div class="dropdown me-3">
+                        <button class="btn btn-outline-light position-relative p-2" type="button" id="notificationBellDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-bell-fill fs-5"></i>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" id="notificationBadge">
+                                0
+                                <span class="visually-hidden">unread notifications</span>
+                            </span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="width: 320px; max-height: 400px; overflow-y: auto;" id="notificationList" aria-labelledby="notificationBellDropdown">
+                            <li class="p-2 border-bottom d-flex justify-content-between align-items-center">
+                                <span class="fw-bold">Notifications</span>
+                                <button class="btn btn-link btn-sm text-decoration-none p-0 text-xs" id="markAllReadBtn">Mark all read</button>
+                            </li>
+                            <div id="notificationItems">
+                                <li class="text-center text-muted p-3 text-xs">No unread notifications</li>
+                            </div>
+                            <li class="border-top text-center py-2">
+                                <a class="text-xs text-decoration-none" href="{% url 'notifications_list' %}">View all notifications</a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="dropdown">
+                        <button class="btn btn-outline-light dropdown-toggle d-flex align-items-center gap-2" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle"></i>
+                            <span>{{ user.email }}</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="userDropdown">
+                            <li><a class="dropdown-item text-danger" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <div class="container my-4">
+        <!-- Messages/Alerts -->
+        {% if messages %}
+            <div class="row">
+                <div class="col-12">
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-rp alert-dismissible fade show shadow-sm mb-3" role="alert">
+                            {% if 'success' in message.tags %}
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            {% elif 'error' in message.tags or 'danger' in message.tags %}
+                                <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>
+                            {% else %}
+                                <i class="bi bi-info-circle-fill text-info me-2"></i>
+                            {% endif %}
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container text-center">
+            <p class="mb-1">&copy; 2026 RiskPilot. All rights reserved.</p>
+            <small>Premium Cyber Risk Assessment & Governance Platform</small>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS and Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqqB9aa" crossorigin="anonymous"></script>
+    
+    <!-- RiskPilot AI Helper Script -->
+    <script>
+        window.RiskPilotAI = {
+            generate: function(options) {
+                // options: { feature: string, params: object, onApply: function(suggestionText), applyLabel: string }
+                
+                // 1. Create or get modal
+                let modalEl = document.getElementById('rpAiModal');
+                if (!modalEl) {
+                    modalEl = document.createElement('div');
+                    modalEl.id = 'rpAiModal';
+                    modalEl.className = 'modal fade';
+                    modalEl.tabIndex = -1;
+                    modalEl.setAttribute('aria-hidden', 'true');
+                    modalEl.innerHTML = `
+                        <div class="modal-dialog modal-lg modal-dialog-centered">
+                            <div class="modal-content shadow-lg border-0">
+                                <div class="modal-header text-white" style="background-color: var(--rp-blue-primary); border-bottom: 3px solid var(--rp-red-accent);">
+                                    <h5 class="modal-title d-flex align-items-center">
+                                        <i class="bi bi-robot me-2 fs-4"></i>
+                                        <span>AI Assistant Advisor</span>
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body p-4">
+                                    <!-- Loading state -->
+                                    <div class="ai-loading text-center py-5">
+                                        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <h5 class="mt-3 text-muted">Consulting AI model...</h5>
+                                        <p class="text-xs text-muted">Analyzing context and formulating suggestions.</p>
+                                    </div>
+                                    
+                                    <!-- Content state -->
+                                    <div class="ai-content d-none">
+                                        <div class="alert alert-info d-flex align-items-start alert-rp mb-3 py-2 px-3 small" style="border-left-color: var(--rp-blue-primary);">
+                                            <i class="bi bi-info-circle-fill me-2 fs-6 text-primary"></i>
+                                            <div>
+                                                <strong>Advisory Notice:</strong> This AI-generated output is strictly advisory. Assessors must review, verify, and approve the details below before applying them to the system database.
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold text-xs text-uppercase text-muted">AI Suggestion</label>
+                                            <div class="border rounded p-3 bg-light text-dark font-monospace fs-7 text-pre-wrap" id="rpAiSuggestionText" style="white-space: pre-wrap; max-height: 400px; overflow-y: auto;">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="text-muted text-xs d-flex justify-content-between align-items-center border-top pt-2">
+                                            <span>Model Used: <strong id="rpAiModelUsed"></strong></span>
+                                            <span>Advisory Role: Human-in-the-loop</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Error state -->
+                                    <div class="ai-error d-none">
+                                        <div class="alert alert-danger d-flex align-items-start alert-rp py-3" style="border-left-color: var(--rp-red-accent);">
+                                            <i class="bi bi-x-circle-fill me-3 fs-4 text-danger"></i>
+                                            <div>
+                                                <h6 class="fw-bold mb-1">AI Consult Failed</h6>
+                                                <p class="mb-0" id="rpAiErrorMessage"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer bg-light border-top py-2.5">
+                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                                    <button type="button" class="btn btn-rp-primary btn-sm d-none" id="rpAiApplyBtn"></button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(modalEl);
+                }
+
+                const modal = new bootstrap.Modal(modalEl);
+                const loadingDiv = modalEl.querySelector('.ai-loading');
+                const contentDiv = modalEl.querySelector('.ai-content');
+                const errorDiv = modalEl.querySelector('.ai-error');
+                const suggestionTextEl = modalEl.querySelector('#rpAiSuggestionText');
+                const modelUsedEl = modalEl.querySelector('#rpAiModelUsed');
+                const errorMessageEl = modalEl.querySelector('#rpAiErrorMessage');
+                const applyBtn = modalEl.querySelector('#rpAiApplyBtn');
+
+                // Reset state
+                loadingDiv.classList.remove('d-none');
+                contentDiv.classList.add('d-none');
+                errorDiv.classList.add('d-none');
+                applyBtn.classList.add('d-none');
+
+                modal.show();
+
+                // Prepare request body
+                const requestData = Object.assign({ feature: options.feature }, options.params || {});
+                
+                // Fetch CSRF token
+                let csrfToken = '';
+                const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+                if (csrfInput) {
+                    csrfToken = csrfInput.value;
+                } else {
+                    // Try cookie
+                    const match = document.cookie.match(/csrftoken=([^;]+)/);
+                    if (match) {
+                        csrfToken = match[1];
+                    }
+                }
+
+                fetch('/ai/generate/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(requestData)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(errData => {
+                            throw new Error(errData.message || `HTTP ${response.status} Error`);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        suggestionTextEl.innerText = data.suggestion;
+                        modelUsedEl.innerText = data.model_used;
+                        
+                        loadingDiv.classList.add('d-none');
+                        contentDiv.classList.remove('d-none');
+                        
+                        if (options.onApply) {
+                            applyBtn.innerText = options.applyLabel || 'Apply Suggestion';
+                            applyBtn.classList.remove('d-none');
+                            applyBtn.onclick = function() {
+                                options.onApply(data.suggestion);
+                                modal.hide();
+                            };
+                        }
+                    } else {
+                        throw new Error(data.message || 'Unknown error occurred.');
+                    }
+                })
+                .catch(err => {
+                    errorMessageEl.innerText = err.message;
+                    loadingDiv.classList.add('d-none');
+                    errorDiv.classList.remove('d-none');
+                });
+            }
+        };
+    </script>
+    
+    <!-- Polling Notifications Script -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const badge = document.getElementById("notificationBadge");
+            const listContainer = document.getElementById("notificationItems");
+            const markAllBtn = document.getElementById("markAllReadBtn");
+
+            // Fetch CSRF token
+            let csrfToken = '';
+            const match = document.cookie.match(/csrftoken=([^;]+)/);
+            if (match) {
+                csrfToken = match[1];
+            }
+
+            function refreshNotifications() {
+                fetch('/collaboration/api/notifications/')
+                    .then(response => {
+                        if (!response.ok) throw new Error("API error");
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Update badge
+                        if (data.count > 0) {
+                            badge.innerText = data.count;
+                            badge.classList.remove("d-none");
+                        } else {
+                            badge.classList.add("d-none");
+                        }
+
+                        // Update list
+                        if (data.notifications && data.notifications.length > 0) {
+                            listContainer.innerHTML = '';
+                            data.notifications.forEach(n => {
+                                const item = document.createElement("li");
+                                item.className = "p-2 border-bottom hover-bg-light";
+                                item.innerHTML = `
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <a href="${n.url || '#'}" class="text-decoration-none text-dark small flex-grow-1">
+                                            <strong>${n.title}</strong>
+                                            <p class="mb-0 text-muted text-xs">${n.message}</p>
+                                        </a>
+                                        <button class="btn btn-link btn-sm text-muted p-0 ms-2 mark-read-btn" data-id="${n.id}">
+                                            <i class="bi bi-check2"></i>
+                                        </button>
+                                    </div>
+                                `;
+                                listContainer.appendChild(item);
+                            });
+
+                            // Add click handler to checkmarks
+                            listContainer.querySelectorAll(".mark-read-btn").forEach(btn => {
+                                btn.addEventListener("click", function(e) {
+                                    e.stopPropagation();
+                                    const notifId = this.dataset.id;
+                                    fetch(`/collaboration/api/notifications/${notifId}/read/`, {
+                                        method: 'POST',
+                                        headers: {
+                                            'X-CSRFToken': csrfToken
+                                        }
+                                    }).then(() => refreshNotifications());
+                                });
+                            });
+                        } else {
+                            listContainer.innerHTML = '<li class="text-center text-muted p-3 text-xs">No unread notifications</li>';
+                        }
+                    })
+                    .catch(err => console.log("Failed to fetch notifications:", err));
+            }
+
+            window.refreshNotifications = refreshNotifications;
+            refreshNotifications();
+            // Poll every 30 seconds
+            setInterval(refreshNotifications, 30000);
+
+            if (markAllBtn) {
+                markAllBtn.addEventListener("click", function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    fetch('/collaboration/api/notifications/read-all/', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrfToken
+                        }
+                    }).then(() => refreshNotifications());
+                });
+            }
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

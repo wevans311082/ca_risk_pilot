@@ -1,0 +1,130 @@
+<div class="card card-rp mt-4 shadow-sm">
+    <div class="card-header card-header-rp bg-light d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-primary">
+            <i class="bi bi-chat-left-text-fill me-2"></i>Discussion Thread
+        </h5>
+        <span class="badge bg-rp-blue px-2.5 py-1.5 rounded-pill small">
+            {{ comments|length }} comment{% if comments|length != 1 %}s{% endif %}
+        </span>
+    </div>
+    <div class="card-body p-3">
+        <!-- Add Primary Comment Form -->
+        <form action="{% url 'add_comment' %}" method="post" class="mb-4">
+            {% csrf_token %}
+            <input type="hidden" name="entity_type" value="{{ entity_type }}">
+            <input type="hidden" name="entity_id" value="{{ entity_id }}">
+            <input type="hidden" name="next" value="{{ request.path }}">
+            
+            <div class="mb-3">
+                <label for="new-comment-text" class="form-label fw-semibold text-muted small">Share your notes, findings or ask a question (@mention users by email):</label>
+                <textarea class="form-value form-control" id="new-comment-text" name="text" rows="3" placeholder="Write a comment... Use @email to mention someone." required></textarea>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted small"><i class="bi bi-info-circle me-1"></i>Supports inline user mentions.</span>
+                <button type="submit" class="btn btn-rp-primary btn-sm">
+                    <i class="bi bi-send-fill me-1"></i>Post Comment
+                </button>
+            </div>
+        </form>
+
+        <hr class="text-muted opacity-25">
+
+        <!-- Comments List -->
+        <div class="comment-list mt-3">
+            {% for comment in comments %}
+                <div class="comment-item border-bottom pb-3 mb-3" id="comment-{{ comment.id }}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="avatar-circle bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; font-size: 0.85rem;">
+                                {{ comment.user.email|slice:":1"|upper }}
+                            </span>
+                            <div>
+                                <h6 class="mb-0 fw-semibold text-dark">{{ comment.user.email }}</h6>
+                                <small class="text-muted">{{ comment.created_at|date:"Y-m-d H:i" }}</small>
+                            </div>
+                        </div>
+                        <button class="btn btn-link btn-sm text-decoration-none py-0 reply-toggle-btn" data-comment-id="{{ comment.id }}">
+                            <i class="bi bi-reply-fill"></i> Reply
+                        </button>
+                    </div>
+                    
+                    <div class="mt-2 text-dark px-1 text-pre-wrap" style="white-space: pre-wrap; font-size: 0.95rem;">
+                        {{ comment.text }}
+                    </div>
+
+                    <!-- Inline Reply Form (Hidden by default) -->
+                    <div class="reply-form-container mt-3 d-none ps-4" id="reply-form-{{ comment.id }}">
+                        <form action="{% url 'add_comment' %}" method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="entity_type" value="{{ entity_type }}">
+                            <input type="hidden" name="entity_id" value="{{ entity_id }}">
+                            <input type="hidden" name="parent_id" value="{{ comment.id }}">
+                            <input type="hidden" name="next" value="{{ request.path }}">
+                            
+                            <div class="mb-2">
+                                <textarea class="form-control" name="text" rows="2" placeholder="Write a reply..." required></textarea>
+                            </div>
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-light btn-sm cancel-reply-btn" data-comment-id="{{ comment.id }}">Cancel</button>
+                                <button type="submit" class="btn btn-rp-primary btn-sm">Post Reply</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Nested Replies -->
+                    {% if comment.replies.all %}
+                        <div class="replies-container ps-4 mt-3 border-start border-light-subtle" style="border-left: 2px solid #dee2e6 !important;">
+                            {% for reply in comment.replies.all %}
+                                <div class="reply-item mb-2 pb-2 {% if not forloop.last %}border-bottom border-light-subtle{% endif %}" id="comment-{{ reply.id }}">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="avatar-circle bg-light text-dark rounded-circle d-flex align-items-center justify-content-center border fw-bold" style="width: 24px; height: 24px; font-size: 0.75rem;">
+                                            {{ reply.user.email|slice:":1"|upper }}
+                                        </span>
+                                        <div>
+                                            <h6 class="mb-0 fw-semibold text-dark" style="font-size: 0.85rem;">{{ reply.user.email }}</h6>
+                                            <small class="text-muted" style="font-size: 0.75rem;">{{ reply.created_at|date:"Y-m-d H:i" }}</small>
+                                        </div>
+                                    </div>
+                                    <div class="mt-1 text-dark ps-4 text-pre-wrap" style="white-space: pre-wrap; font-size: 0.9rem;">
+                                        {{ reply.text }}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% empty %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-chat-left-dots fs-3"></i>
+                    <p class="mt-2 mb-0">No discussions yet. Start the conversation!</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Toggle reply forms
+        document.querySelectorAll(".reply-toggle-btn").forEach(btn => {
+            btn.addEventListener("click", function() {
+                const commentId = this.dataset.commentId;
+                const formContainer = document.getElementById(`reply-form-${commentId}`);
+                if (formContainer) {
+                    formContainer.classList.toggle("d-none");
+                }
+            });
+        });
+
+        // Cancel replies
+        document.querySelectorAll(".cancel-reply-btn").forEach(btn => {
+            btn.addEventListener("click", function() {
+                const commentId = this.dataset.commentId;
+                const formContainer = document.getElementById(`reply-form-${commentId}`);
+                if (formContainer) {
+                    formContainer.classList.add("d-none");
+                }
+            });
+        });
+    });
+</script>

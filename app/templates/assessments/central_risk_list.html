@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Central Risk Register - RiskPilot{% endblock %}
+
+{% block extra_css %}
+<style>
+    .risk-header {
+        background: linear-gradient(135deg, var(--rp-blue-primary), #0a4095);
+        color: #ffffff;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 50, 150, 0.15);
+        border-bottom: 4px solid var(--rp-red-accent);
+    }
+    .risk-header h1 {
+        color: #ffffff;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    .metric-card {
+        border-radius: 10px;
+        border: none;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+        transition: transform 0.2s ease;
+    }
+    .metric-card:hover {
+        transform: translateY(-2px);
+    }
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+    .metric-label {
+        font-size: 0.75rem;
+        text-uppercase: uppercase;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+    .chart-container-rp {
+        position: relative;
+        margin: auto;
+        height: 250px;
+        width: 100%;
+    }
+    .fs-7 {
+        font-size: 0.825rem !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="risk-header mb-4">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <span class="badge bg-white text-dark opacity-75 mb-2 px-2.5 py-1 text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 0.5px;">Governance & Posture Control</span>
+            <h1>Central Risk Register</h1>
+            <p class="mb-0 opacity-85">Manage standalone organization risks, schedule reviews, track acceptances, and audit modifications across the enterprise.</p>
+        </div>
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            {% if user_role != 'client' %}
+                <a href="{% url 'central_risk_add' %}" class="btn btn-outline-light px-4 py-2 shadow-sm fw-semibold">
+                    <i class="bi bi-plus-circle me-2"></i> Register Standalone Risk
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Register Metrics -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="card metric-card border-start border-primary border-4 h-100 p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="metric-label text-primary">Total Risks Registered</div>
+                    <div class="metric-value text-dark">{{ total_risks_count }}</div>
+                </div>
+                <div class="fs-1 text-primary opacity-50"><i class="bi bi-shield-lock"></i></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-6 col-lg-3">
+        <div class="card metric-card border-start border-success border-4 h-100 p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="metric-label text-success">Active Risks</div>
+                    <div class="metric-value text-dark">{{ active_risks_count }}</div>
+                </div>
+                <div class="fs-1 text-success opacity-50"><i class="bi bi-activity"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="card metric-card border-start border-info border-4 h-100 p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="metric-label text-info">Accepted Risks</div>
+                    <div class="metric-value text-dark">{{ accepted_risks_count }}</div>
+                </div>
+                <div class="fs-1 text-info opacity-50"><i class="bi bi-check2-circle"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="card metric-card border-start border-danger border-4 h-100 p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="metric-label text-danger">Overdue Reviews</div>
+                    <div class="metric-value text-dark">{{ overdue_reviews_count }}</div>
+                </div>
+                <div class="fs-1 text-danger opacity-50"><i class="bi bi-calendar-x"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Panel -->
+<div class="card card-rp shadow-sm p-3 mb-4">
+    <form method="GET" class="row g-3 align-items-end">
+        {% if user_role != 'client' %}
+        <div class="col-md-3">
+            <label for="client" class="form-label text-muted fs-7 fw-semibold">Client / Org</label>
+            <select name="client" id="client" class="form-select form-select-sm">
+                <option value="">-- All Clients --</option>
+                {% for cl in filter_clients %}
+                    <option value="{{ cl.id }}" {% if selected_client_id == cl.id|stringformat:"s" %}selected{% endif %}>{{ cl.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+
+        <div class="col-md-3">
+            <label for="owner" class="form-label text-muted fs-7 fw-semibold">Risk Owner</label>
+            <select name="owner" id="owner" class="form-select form-select-sm">
+                <option value="">-- All Owners --</option>
+                {% for u in filter_owners %}
+                    <option value="{{ u.id }}" {% if selected_owner_id == u.id|stringformat:"s" %}selected{% endif %}>{{ u.email }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <label for="status" class="form-label text-muted fs-7 fw-semibold">Lifecycle Status</label>
+            <select name="status" id="status" class="form-select form-select-sm">
+                <option value="">-- All Statuses --</option>
+                {% for s_val, s_label in status_choices %}
+                    <option value="{{ s_val }}" {% if selected_status == s_val %}selected{% endif %}>{{ s_label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <label for="category" class="form-label text-muted fs-7 fw-semibold">Risk Rating</label>
+            <select name="category" id="category" class="form-select form-select-sm">
+                <option value="">-- All Ratings --</option>
+                {% for cat in category_choices %}
+                    <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-rp-primary btn-sm flex-grow-1"><i class="bi bi-funnel-fill"></i> Filter</button>
+            <a href="{% url 'central_risk_list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-counterclockwise"></i></a>
+        </div>
+    </form>
+</div>
+
+<!-- Visual Trend Panel -->
+<div class="card card-rp shadow-sm mb-4">
+    <div class="card-header-rp"><i class="bi bi-graph-up me-2 text-primary"></i> Risk Score Posture Trend</div>
+    <div class="card-body">
+        <div class="chart-container-rp">
+            <canvas id="riskTrendChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Risk Register Table -->
+<div class="card card-rp shadow-sm">
+    <div class="card-header-rp d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-table me-2 text-primary"></i> Central Risk Directory</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 fs-7">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Asset / Risk Title</th>
+                        <th>Client / Org</th>
+                        <th>Threat Scenario</th>
+                        <th>Risk Owner</th>
+                        <th>Inherent Rating</th>
+                        <th>Residual Rating</th>
+                        <th>Next Review</th>
+                        <th>Status</th>
+                        <th class="pe-4 text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for risk in risks %}
+                        <tr>
+                            <td class="ps-4">
+                                <a href="{% url 'central_risk_detail' risk.id %}" class="fw-semibold text-dark text-decoration-none">{{ risk.asset_name }}</a>
+                            </td>
+                            <td>{{ risk.client.name }}</td>
+                            <td><span class="text-muted">{{ risk.threat.name }}</span></td>
+                            <td>{{ risk.owner.email|default:"Unassigned" }}</td>
+                            <td>
+                                <span class="badge {% if risk.risk_category == 'Critical' or risk.risk_category == 'High' %}bg-danger{% elif risk.risk_category == 'Medium' %}bg-warning text-dark{% else %}bg-rp-success{% endif %} px-2.5 py-1">
+                                    {{ risk.risk_category }} ({{ risk.risk_score }})
+                                </span>
+                            </td>
+                            <td>
+                                {% if risk.residual_risk_score is not None %}
+                                <span class="badge {% if risk.residual_risk_category == 'Critical' or risk.residual_risk_category == 'High' %}bg-danger{% elif risk.residual_risk_category == 'Medium' %}bg-warning text-dark{% else %}bg-rp-success{% endif %} px-2.5 py-1">
+                                    {{ risk.residual_risk_category }} ({{ risk.residual_risk_score }})
+                                </span>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if risk.review_date %}
+                                    <span class="{% if risk.review_date < today and risk.status != 'Archived' %}text-danger fw-semibold{% endif %}">
+                                        {{ risk.review_date }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">Not Set</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if risk.status == 'Accepted' %}
+                                    <span class="badge bg-info text-dark"><i class="bi bi-check-circle me-1"></i> Accepted</span>
+                                {% elif risk.status == 'Active' %}
+                                    <span class="badge bg-rp-success"><i class="bi bi-play-circle me-1"></i> Active</span>
+                                {% elif risk.status == 'Under Review' %}
+                                    <span class="badge bg-warning text-dark"><i class="bi bi-eye me-1"></i> Under Review</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ risk.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="pe-4 text-end">
+                                <a href="{% url 'central_risk_detail' risk.id %}" class="btn btn-outline-rp btn-sm px-2.5 py-0.5"><i class="bi bi-folder2-open"></i> Open</a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-5 text-muted">
+                                <i class="bi bi-shield-slash fs-1 d-block mb-2 opacity-50"></i>
+                                <h6>No registered central risks found.</h6>
+                                <small>Adjust filters or register a standalone risk using the action button above.</small>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{{ trend_data|json_script:"trend-data-json" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/chart.js' %}"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const trendDataEl = document.getElementById("trend-data-json");
+        if (trendDataEl) {
+            const trendData = JSON.parse(trendDataEl.textContent || "[]");
+            const labels = trendData.map(d => d.month);
+            const scores = trendData.map(d => d.avg_score);
+
+            const ctx = document.getElementById("riskTrendChart");
+            if (ctx && labels.length > 0) {
+                new Chart(ctx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Average Residual Risk Score progression',
+                            data: scores,
+                            borderColor: 'hsl(348, 85%, 50%)',
+                            backgroundColor: 'hsla(348, 85%, 50%, 0.15)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                suggestedMax: 15
+                            }
+                        }
+                    }
+                });
+            }
+        }
+    });
+</script>
+{% endblock %}

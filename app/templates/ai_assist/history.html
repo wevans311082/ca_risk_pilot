@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}AI Assistance Audit History - RiskPilot{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="h2 mb-1">AI Audit History</h1>
+        <p class="text-muted mb-0">Transparent compliance registry logging all prompt requests, raw LLM completions, model targets, and users.</p>
+    </div>
+</div>
+
+<div class="card card-rp shadow-sm">
+    <div class="card-header-rp bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+        <span class="fw-semibold"><i class="bi bi-shield-lock text-primary me-2"></i> LLM Interaction Logs</span>
+    </div>
+    <div class="card-body p-0">
+        {% if interactions %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Timestamp</th>
+                        <th>User</th>
+                        <th>Feature Triggered</th>
+                        <th>Model Name</th>
+                        <th>Prompt Summary</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in interactions %}
+                    <tr>
+                        <td class="ps-4 fw-medium text-nowrap">{{ log.created_at|date:"Y-m-d H:i:s" }}</td>
+                        <td>{{ log.user.email|default:"System" }}</td>
+                        <td>
+                            <span class="badge bg-light text-dark border px-2.5 py-1.5" style="font-size: 0.8rem;">
+                                {{ log.feature }}
+                            </span>
+                        </td>
+                        <td class="font-monospace text-muted" style="font-size: 0.85rem;">{{ log.model_used }}</td>
+                        <td class="text-muted text-truncate" style="max-width: 300px;">
+                            {{ log.prompt|truncatechars:80 }}
+                        </td>
+                        <td class="text-end pe-4">
+                            <button class="btn btn-sm btn-outline-rp view-log-btn"
+                                    data-timestamp="{{ log.created_at|date:'Y-m-d H:i:s' }}"
+                                    data-user="{{ log.user.email|default:'System' }}"
+                                    data-feature="{{ log.feature }}"
+                                    data-model="{{ log.model_used }}"
+                                    data-prompt="{{ log.prompt }}"
+                                    data-response="{{ log.response }}"
+                                    data-bs-toggle="modal" data-bs-target="#viewLogModal">
+                                <i class="bi bi-eye"></i> Details
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-journal-x text-muted display-4 mb-3 d-block"></i>
+            <h4 class="text-muted">No interactions logged yet</h4>
+            <p class="text-muted mb-0">AI requests from your assessors will be logged here automatically.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Log Details Modal -->
+<div class="modal fade" id="viewLogModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-text text-primary me-2"></i> Audit Interaction Detail</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3 g-2">
+                    <div class="col-md-6">
+                        <strong>Logged Timestamp:</strong> <span id="modal_timestamp" class="text-muted"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Requesting User:</strong> <span id="modal_user" class="text-muted"></span>
+                    </div>
+                </div>
+                <div class="row mb-4 g-2">
+                    <div class="col-md-6">
+                        <strong>Feature Type:</strong> <span id="modal_feature" class="badge bg-light text-dark border"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>LLM Model Used:</strong> <code id="modal_model"></code>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Prompt Payload Submitted</label>
+                    <pre class="bg-light p-3 border rounded font-monospace small" id="modal_prompt" style="white-space: pre-wrap; max-height: 250px; overflow-y: auto;"></pre>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label fw-bold">AI Advisory Response Received</label>
+                    <div class="bg-light p-3 border border-start border-primary border-3 rounded font-monospace small" id="modal_response" style="white-space: pre-wrap; max-height: 300px; overflow-y: auto;"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-rp-primary px-4" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const viewBtns = document.querySelectorAll(".view-log-btn");
+        viewBtns.forEach(btn => {
+            btn.addEventListener("click", function() {
+                document.getElementById("modal_timestamp").textContent = this.dataset.timestamp;
+                document.getElementById("modal_user").textContent = this.dataset.user;
+                document.getElementById("modal_feature").textContent = this.dataset.feature.replace(/_/g, ' ');
+                document.getElementById("modal_model").textContent = this.dataset.model;
+                document.getElementById("modal_prompt").textContent = this.dataset.prompt;
+                document.getElementById("modal_response").textContent = this.dataset.response;
+            });
+        });
+    });
+</script>
+{% endblock %}

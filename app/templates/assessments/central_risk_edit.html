@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}{% if risk %}Edit Central Risk{% else %}Register New Central Risk{% endif %} - RiskPilot{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none">Home</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'central_risk_list' %}" class="text-decoration-none">Central Risk Register</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{% if risk %}Edit{% else %}Register{% endif %} Central Risk</li>
+            </ol>
+        </nav>
+        <h1 class="h2 mb-0">
+            <i class="bi bi-shield-exclamation text-primary me-2"></i>
+            {% if risk %}Edit Central Risk: {{ risk.asset_name }}{% else %}Register Standalone Risk{% endif %}
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <form method="post" action="">
+            {% csrf_token %}
+            
+            <div class="row">
+                <!-- Left Column: Details & Ownership -->
+                <div class="col-lg-8 mb-4">
+                    <div class="card card-rp shadow-sm mb-4">
+                        <div class="card-header-rp"><i class="bi bi-info-circle-fill text-primary me-2"></i> Inherent Risk Details</div>
+                        <div class="card-body p-4">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label for="client_select" class="form-label fw-semibold">Client / Org <span class="text-danger">*</span></label>
+                                    <select name="client" id="client_select" required class="form-select">
+                                        <option value="" disabled {% if not risk %}selected{% endif %}>-- Choose Client --</option>
+                                        {% for cl in clients %}
+                                            <option value="{{ cl.id }}" {% if risk.client_id == cl.id %}selected{% endif %}>{{ cl.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="owner_select" class="form-label fw-semibold">Risk Owner</label>
+                                    <select name="owner" id="owner_select" class="form-select">
+                                        <option value="">-- Unassigned --</option>
+                                        {% for u in owners %}
+                                            <option value="{{ u.id }}" {% if risk.owner_id == u.id %}selected{% endif %}>{{ u.email }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-12">
+                                    <label for="asset_name" class="form-label fw-semibold">Asset Affected / Risk Title <span class="text-danger">*</span></label>
+                                    <input type="text" name="asset_name" id="asset_name" required class="form-control form-control-lg" placeholder="e.g. Core Accounting Database" value="{{ risk.asset_name|default:'' }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="asset_location" class="form-label fw-semibold">Asset Location</label>
+                                    <input type="text" name="asset_location" id="asset_location" class="form-control" placeholder="e.g. AWS Cloud" value="{{ risk.asset_location|default:'' }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="asset_owner" class="form-label fw-semibold">Asset Owner</label>
+                                    <input type="text" name="asset_owner" id="asset_owner" class="form-control" placeholder="e.g. IT Infrastructure Lead" value="{{ risk.asset_owner|default:'' }}">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="threat_select" class="form-label fw-semibold">Select Threat <span class="text-danger">*</span></label>
+                                <select name="threat" id="threat_select" required class="form-select">
+                                    <option value="" disabled {% if not risk %}selected{% endif %}>-- Choose Threat Scenario --</option>
+                                    {% for threat in threats %}
+                                        <option value="{{ threat.id }}" {% if risk.threat_id == threat.id %}selected{% endif %}>
+                                            [{{ threat.category.name }}] — {{ threat.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="vulnerability" class="form-label fw-semibold">Vulnerability Description <span class="text-danger">*</span></label>
+                                <textarea name="vulnerability" id="vulnerability" required class="form-control" rows="3" placeholder="Describe the vulnerability details...">{{ risk.vulnerability|default:'' }}</textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="existing_controls" class="form-label fw-semibold">Existing Controls</label>
+                                <textarea name="existing_controls" id="existing_controls" class="form-control" rows="2" placeholder="List active baseline controls...">{{ risk.existing_controls|default:'' }}</textarea>
+                            </div>
+
+                            <!-- CIA checkmarks -->
+                            <div>
+                                <label class="form-label fw-semibold d-block">CIA Impact Assessment</label>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" name="confidentiality_affected" id="c_affected" value="1" {% if risk.confidentiality_affected %}checked{% endif %}>
+                                    <label class="form-check-label fw-semibold" for="c_affected">Confidentiality</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" name="integrity_affected" id="i_affected" value="1" {% if risk.integrity_affected %}checked{% endif %}>
+                                    <label class="form-check-label fw-semibold" for="i_affected">Integrity</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" name="availability_affected" id="a_affected" value="1" {% if risk.availability_affected %}checked{% endif %}>
+                                    <label class="form-check-label fw-semibold" for="a_affected">Availability</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card card-rp shadow-sm mb-4">
+                        <div class="card-header-rp"><i class="bi bi-shield-plus text-primary me-2"></i> Proposed Mitigation Plan</div>
+                        <div class="card-body p-4">
+                            <div class="mb-3">
+                                <label for="proposed_controls" class="form-label fw-semibold">Proposed Controls</label>
+                                <textarea name="proposed_controls" id="proposed_controls" class="form-control" rows="2" placeholder="Describe controls to be added...">{{ risk.proposed_controls|default:'' }}</textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="additional_mitigations" class="form-label fw-semibold">Additional Mitigations</label>
+                                <textarea name="additional_mitigations" id="additional_mitigations" class="form-control" rows="2" placeholder="Describe optional mitigations...">{{ risk.additional_mitigations|default:'' }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Scoring & Status Actions -->
+                <div class="col-lg-4 mb-4">
+                    <!-- Scoring panel -->
+                    <div class="card card-rp shadow-sm mb-4 border-top border-primary border-3">
+                        <div class="card-header-rp fw-semibold">
+                            <i class="bi bi-bar-chart-fill text-primary me-2"></i> Inherent Risk Scoring
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="mb-3">
+                                <label for="freq_select" class="form-label fw-semibold">Threat Frequency <span class="text-danger">*</span></label>
+                                <select name="threat_frequency" id="freq_select" required class="form-select">
+                                    <option value="" disabled {% if not risk %}selected{% endif %}>-- Select Frequency --</option>
+                                    {% for crit in freq_criteria %}
+                                        <option value="{{ crit.id }}" {% if risk.threat_frequency_id == crit.id %}selected{% endif %}>
+                                            {{ crit.label }} (Score: {{ crit.score }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="prob_select" class="form-label fw-semibold">Vulnerability Probability <span class="text-danger">*</span></label>
+                                <select name="vulnerability_probability" id="prob_select" required class="form-select">
+                                    <option value="" disabled {% if not risk %}selected{% endif %}>-- Select Probability --</option>
+                                    {% for crit in prob_criteria %}
+                                        <option value="{{ crit.id }}" {% if risk.vulnerability_probability_id == crit.id %}selected{% endif %}>
+                                            {{ crit.label }} (Score: {{ crit.score }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="impact_select" class="form-label fw-semibold">Impact Severity <span class="text-danger">*</span></label>
+                                <select name="impact_severity" id="impact_select" required class="form-select">
+                                    <option value="" disabled {% if not risk %}selected{% endif %}>-- Select Severity --</option>
+                                    {% for crit in impact_criteria %}
+                                        <option value="{{ crit.id }}" {% if risk.impact_severity_id == crit.id %}selected{% endif %}>
+                                            {{ crit.label }} (Score: {{ crit.score }}) - {{ crit.financial_impact_range }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Residual scoring panel -->
+                    <div class="card card-rp shadow-sm mb-4 border-top border-success border-3">
+                        <div class="card-header-rp fw-semibold" style="border-top-color: var(--rp-green-success) !important;">
+                            <i class="bi bi-bar-chart-line text-success me-2" style="color: var(--rp-green-success) !important;"></i> Residual Risk Scoring
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="mb-3">
+                                <label for="res_freq_select" class="form-label fw-semibold">Residual Frequency</label>
+                                <select name="residual_threat_frequency" id="res_freq_select" class="form-select">
+                                    <option value="" {% if not risk.residual_threat_frequency %}selected{% endif %}>-- Select Frequency --</option>
+                                    {% for crit in freq_criteria %}
+                                        <option value="{{ crit.id }}" {% if risk.residual_threat_frequency_id == crit.id %}selected{% endif %}>
+                                            {{ crit.label }} (Score: {{ crit.score }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="res_prob_select" class="form-label fw-semibold">Residual Probability</label>
+                                <select name="residual_vulnerability_probability" id="res_prob_select" class="form-select">
+                                    <option value="" {% if not risk.residual_vulnerability_probability %}selected{% endif %}>-- Select Probability --</option>
+                                    {% for crit in prob_criteria %}
+                                        <option value="{{ crit.id }}" {% if risk.residual_vulnerability_probability_id == crit.id %}selected{% endif %}>
+                                            {{ crit.label }} (Score: {{ crit.score }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="res_impact_select" class="form-label fw-semibold">Residual Severity</label>
+                                <select name="residual_impact_severity" id="res_impact_select" class="form-select">
+                                    <option value="" {% if not risk.residual_impact_severity %}selected{% endif %}>-- Select Severity --</option>
+                                    {% for crit in impact_criteria %}
+                                        <option value="{{ crit.id }}" {% if risk.residual_impact_severity_id == crit.id %}selected{% endif %}>
+                                            {{ crit.label }} (Score: {{ crit.score }}) - {{ crit.financial_impact_range }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Workflow state panel -->
+                    <div class="card card-rp shadow-sm mb-4">
+                        <div class="card-header-rp"><i class="bi bi-gear me-2"></i> Review & Lifecycle</div>
+                        <div class="card-body p-4">
+                            <div class="mb-3">
+                                <label for="status_select" class="form-label fw-semibold">Lifecycle Status</label>
+                                <select name="status" id="status_select" class="form-select">
+                                    {% for s_val, s_label in status_choices %}
+                                        <option value="{{ s_val }}" {% if risk.status == s_val %}selected{% endif %}>{{ s_label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="review_date" class="form-label fw-semibold">Review Date</label>
+                                <input type="date" name="review_date" id="review_date" class="form-control" value="{% if risk.review_date %}{{ risk.review_date|date:'Y-m-d' }}{% endif %}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="card card-rp shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-rp-primary"><i class="bi bi-floppy-fill me-2"></i> Save Registry Entry</button>
+                                <a href="{% if risk %}{% url 'central_risk_detail' risk.id %}{% else %}{% url 'central_risk_list' %}{% endif %}" class="btn btn-outline-secondary">Cancel</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
